@@ -1,0 +1,42 @@
+{
+    "java.project.sourcePaths": [
+        "src"
+    ],
+    "java.project.referencedLibraries": [
+        "libs\\antifarm.jar",
+        "libs\\bonecp-0.8.0.jar",
+        "libs\\bsf.jar",
+        "libs\\bsh-2.0b4.jar",
+        "libs\\c3p0-0.9.1.2.jar",
+        "libs\\cademia.jar",
+        "libs\\commons-logging-1.1.jar",
+        "libs\\commons-pool-1.5.4.jar",
+        "libs\\ecj.jar",
+        "libs\\google-collections-1.0.jar",
+        "libs\\guava-17.0.jar",
+        "libs\\hibernate-core-5.0.1.Final.jar",
+        "libs\\HikariCP-2.4.1.jar",
+        "libs\\java-engine.jar",
+        "libs\\javolution-5.5.1.jar",
+        "libs\\json-simple-1.1.1.jar",
+        "libs\\jython.jar",
+        "libs\\lameguard-1.9.5.jar",
+        "libs\\log4j-1.2.15.jar",
+        "libs\\mchange-commons-0.2.jar",
+        "libs\\metrics-core-3.1.2.jar",
+        "libs\\metrics-healthchecks-3.1.2.jar",
+        "libs\\mysql-connector-java-5.1.30-bin.jar",
+        "libs\\netty-3.6.3.Final.jar",
+        "libs\\revers.jar",
+        "libs\\slf4j-api-1.6.3.jar",
+        "libs\\slf4j-api-1.7.12.jar",
+        "libs\\slf4j-nop-1.6.3.jar",
+        "libs\\slf4j-nop-1.7.12.jar",
+        "libs\\smrt.jar",
+        "libs\\smrt_HIKARI.jar",
+        "libs\\smrt_stable_backup.jar",
+        "libs\\smrt_stable_backup2.jar",
+        "libs\\smrt-core.jar",
+        "libs\\smrt-core-1.0.jar"
+    ]
+}

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Ares" default="core-jar" basedir=".">
+
+    <property name="build.version" value="TEST"/>
+    <property name="build.revision" value="0.0.1"/>
+    <property name="java.version" value="1.7.0_21"/>
+    <property name="debug" value="on"/>
+
+    <property name="src.core" location="loginserver"/>
+
+    <property name="lib" location="libs"/>
+
+    <property name="build" location="build-login"/>
+    <property name="build.classes" location="${build}/classes"/>
+
+    <property name="nativeCBG" location="nativeCBG"/>
+
+    <path id="classpath">
+        <fileset dir="${lib}">
+            <include name="**/*.jar"/>
+        </fileset>
+    </path>
+
+    <pathconvert property="jar.list" pathsep=" " refid="classpath">
+        <mapper type="flatten"/>
+    </pathconvert>
+    <property name="build.classpath" refid="classpath"/>
+    <tstamp>
+        <format property="build.tstamp" pattern="yyyy.MM.dd HH:mm"/>
+    </tstamp>
+    <target name="clean" description="Remove the output directories.">
+        <delete dir="${build}"/>
+    </target>
+    <target name="init" description="Create the output directories.">
+        <mkdir dir="${build}"/>
+    </target>
+
+    <target name="compile-core" depends="init">
+
+        <mkdir dir="${build.classes}"/>
+        <javac srcdir="${src.core}" destdir="${build.classes}" debug="${debug}" includeantruntime="false" source="1.8" target="1.8" encoding="UTF-8" nowarn="off" classpath="${build.classpath}">
+            <compilerarg value="-Xlint:none"/>
+        </javac>
+    </target>
+
+    <target name="core-jar" depends="compile-core">
+        <jar destfile="${build}/it_mantaray_login.jar" level="9">
+            <fileset dir="${build.classes}"/>
+            <manifest>
+                <attribute name="Build-By" value="${user.name}"/>
+                <attribute name="Build-Date" value="${build.tstamp}"/>
+                <attribute name="Implementation-Build" value="${build.revision}"/>
+                <attribute name="Implementation-Version" value="${build.version}"/>
+            </manifest>
+        </jar>
+    </target>
+</project>

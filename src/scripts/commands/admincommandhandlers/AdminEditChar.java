@@ -18,7 +18,9 @@
  */
 package scripts.commands.admincommandhandlers;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.logging.Logger;
@@ -80,6 +82,7 @@ public class AdminEditChar implements IAdminCommandHandler {
         "admin_show_characters",//list of characters
         "admin_find_character", //find a player by his name or a part of it (case-insensitive)
         "admin_find_ip", // find all the player connections from a given IPv4 number
+        "admin_find_hwid", // find all the player connections from a given IPv4 number
         "admin_find_account", //list all the characters from an account (useful for GMs w/o DB access)
         "admin_save_modifications", //consider it deprecated...
         "admin_rec", // gives recommendation points
@@ -156,14 +159,29 @@ public class AdminEditChar implements IAdminCommandHandler {
                 listCharacters(activeChar, 0);
             }
         } else if (command.startsWith("admin_find_ip")) {
-            try {
-                String val = command.substring(14);
-                findCharactersPerIp(activeChar, val);
-            } catch (Exception e) {	//Case of empty or malformed IP number
-                activeChar.sendAdmResultMessage("Usage: //find_ip <www.xxx.yyy.zzz>");
+            try
+            {
+                String[] wordList = command.split(" ");
+                findCharacterIpHwid(activeChar, Integer.parseInt(wordList[1]), wordList[2], false);
+            }
+            catch(Exception e)
+            {
+                activeChar.sendAdmResultMessage("You didn't enter a character ip to find.");
                 listCharacters(activeChar, 0);
             }
-        } // [L2J_JP ADD START]
+        } else if(command.startsWith("admin_find_hwid")) {
+            try
+            {
+                String[] wordList = command.split(" ");
+                findCharacterIpHwid(activeChar, Integer.parseInt(wordList[1]), wordList[2], true);
+            }
+            catch(Exception e)
+            {
+                activeChar.sendAdmResultMessage("You didn't enter a character hwid to find.");
+                listCharacters(activeChar, 0);
+            }
+        }
+        // [L2J_JP ADD START]
         else if (command.startsWith("admin_sethero")) {
             L2Object target = activeChar.getTarget();
             L2PcInstance player = null;
@@ -505,6 +523,7 @@ public class AdminEditChar implements IAdminCommandHandler {
     private void gatherCharacterInfo(L2PcInstance activeChar, L2PcInstance player, String filename) {
         String ip = "N/A";
         String account = "N/A";
+        String hwid = "N/A";
         try {
             StringTokenizer clientinfo = new StringTokenizer(player.getClient().toString(), " ]:-[");
             clientinfo.nextToken();
@@ -513,6 +532,8 @@ public class AdminEditChar implements IAdminCommandHandler {
             account = clientinfo.nextToken();
             clientinfo.nextToken();
             ip = clientinfo.nextToken();
+            clientinfo.nextToken();
+            hwid = clientinfo.nextToken();
         } catch (Exception e) {
         }
 
@@ -556,6 +577,7 @@ public class AdminEditChar implements IAdminCommandHandler {
         htm.replace("%access%", String.valueOf(player.getAccessLevel()));
         htm.replace("%account%", account);
         htm.replace("%ip%", ip);
+        htm.replace("%hwid%", hwid);
         activeChar.sendPacket(htm);
         htm = null;
     }
@@ -681,6 +703,60 @@ public class AdminEditChar implements IAdminCommandHandler {
      * @param activeChar
      * @param CharacterToFind
      */
+    private void findCharacterIpHwid(L2PcInstance activeChar, int page, String param, boolean hd)
+    {
+        List<L2PcInstance> players = new ArrayList<L2PcInstance>();
+        for(L2PcInstance pr : L2World.getInstance().getAllPlayers())
+            if(hd ? pr.getHWID().equals(param) : pr.getIP().equals(param))
+                players.add(pr);
+        int MaxCharactersPerPage = 20;
+        int MaxPages = players.size() / MaxCharactersPerPage;
+        if(players.size() > MaxCharactersPerPage * MaxPages)
+            MaxPages++;
+        if(page > MaxPages)
+            page = MaxPages;
+        int CharactersStart = MaxCharactersPerPage * page;
+        int CharactersEnd = players.size();
+        if(CharactersEnd - CharactersStart > MaxCharactersPerPage)
+            CharactersEnd = CharactersStart + MaxCharactersPerPage;
+
+        NpcHtmlMessage adminReply = new NpcHtmlMessage(5);
+
+        StringBuffer replyMSG = new StringBuffer("<html><body>");
+        replyMSG.append("<table width=260><tr>");
+        replyMSG.append("<td width=40><button value=\"Main\" action=\"bypass -h admin_admin\" width=40 height=15 back=\"sek.cbui94\" fore=\"sek.cbui92\"></td>");
+        replyMSG.append("<td width=180><center>Character Selection Menu</center></td>");
+        replyMSG.append("<td width=40><button value=\"Back\" action=\"bypass -h admin_admin\" width=40 height=15 back=\"sek.cbui94\" fore=\"sek.cbui92\"></td>");
+        replyMSG.append("</tr></table>");
+        replyMSG.append("<br>");
+        replyMSG.append("<table width=270>");
+        replyMSG.append("<tr><td width=270><center><font color=\"LEVEL\">Characters with " + (hd ? "HWID" : "IP") + "<br1>" + param + "</font></center></td></tr>");
+        replyMSG.append("</table><br>");
+
+        String pages = "<center><table width=300><tr>";
+        for(int x = 0; x < MaxPages; x++)
+        {
+            int pagenr = x + 1;
+            pages += "<td><a action=\"bypass -h admin_find_" + (hd ? "hwid" : "ip") + " " + x + " " + param + "\">" + (x == page ? "<font color=\"ffffff\">" + pagenr + "</font>" : String.valueOf(pagenr)) + "</a></td>";
+            if(pagenr == 20)
+                break;
+        }
+        pages = pages + "</tr></table></center>";
+        replyMSG.append(pages);
+
+        replyMSG.append("<table width=270>");
+        replyMSG.append("<tr><td width=130>Name:</td><td width=110>Class:</td><td width=20>Lvl:</td></tr>");
+        for(int i = CharactersStart; i < CharactersEnd; i++)
+        {
+            L2PcInstance p = players.get(i);
+            replyMSG.append("<tr><td width=130><a action=\"bypass -h admin_character_list " + p.getName() + "\">" + p.getName().replaceAll("<", "-") + "</a></td><td width=110>" + p.getTemplate().className + "</td><td width=20>" + p.getLevel() + "</td></tr>");
+        }
+        replyMSG.append("</table>");
+        replyMSG.append("</body></html>");
+
+        adminReply.setHtml(replyMSG.toString());
+        activeChar.sendPacket(adminReply);
+    }
     private void findCharacter(L2PcInstance activeChar, String charToFind) {
         /*int CharactersFound = 0;
         String name;

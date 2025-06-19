@@ -22,8 +22,10 @@ import java.io.File;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -36,6 +38,8 @@ import org.w3c.dom.Node;
 import javolution.util.FastList;
 
 import ru.agecold.Config;
+import ru.agecold.Config.EventReward;
+import ru.agecold.gameserver.Announcements;
 import ru.agecold.gameserver.ThreadPoolManager;
 import ru.agecold.gameserver.cache.Static;
 import ru.agecold.gameserver.datatables.DoorTable;
@@ -44,7 +48,6 @@ import ru.agecold.gameserver.datatables.NpcTable;
 import ru.agecold.gameserver.datatables.SkillTable;
 import ru.agecold.gameserver.instancemanager.EventManager;
 import ru.agecold.gameserver.instancemanager.GrandBossManager;
-import ru.agecold.gameserver.instancemanager.SmartScreenTextManager;
 import ru.agecold.gameserver.model.*;
 import ru.agecold.gameserver.model.actor.instance.L2DoorInstance;
 import ru.agecold.gameserver.model.actor.instance.L2NpcInstance;
@@ -90,8 +93,7 @@ public class TvTEvent {
     private static final FastList<L2Spawn> _npcSpawns = new FastList<>();
     private static final FastList<Location> _npcLocs = new FastList<>();
     private static int _npcLocsSize = 0;
-    private static int _returnCount = 0;
-    private static final FastList<Location> _returnLocs = Config.TVT_RETURN_COORDINATES;
+    private static int _returnLocsSize = 0;
     private static final ConcurrentLinkedQueue<String> _ips = new ConcurrentLinkedQueue<>();
     private static final ConcurrentLinkedQueue<String> _hwids = new ConcurrentLinkedQueue<>();
     private static final Map<Integer, Integer> _kills = new ConcurrentHashMap<>();
@@ -102,11 +104,17 @@ public class TvTEvent {
     //
     private static final Map<String, ConcurrentLinkedQueue<Integer>> _playerTeams = new ConcurrentHashMap<>();
     //
-    private static final Map<Integer, FastList<StoredBuff>> _storedBuffs = new ConcurrentHashMap<>();
-    //
     private static final Map<Integer, FastList<Integer>> _tvtItems = new ConcurrentHashMap<>();
     //
     private static final Map<Integer, FastList<Integer>> _storedItems = new ConcurrentHashMap<>();
+    //
+    private static final Map<Integer, FastList<StoredBuff>> _storedBuffs = new ConcurrentHashMap<>();
+    //
+    private static long _endTime;
+    //
+    private static final Map<Integer, Location> _storedLocs = new ConcurrentHashMap<Integer, Location>();
+    //
+    private static final ConcurrentLinkedQueue<Integer> _forKick = new ConcurrentLinkedQueue<Integer>();
     //
     private static ScheduledFuture<?> _scoreTask;
 
@@ -135,6 +143,7 @@ public class TvTEvent {
      * Teams initializing<br>
      */
     public static void init() {
+        _endTime = 0;
         _teams[0] = new TvTEventTeam(Config.TVT_EVENT_TEAM_1_NAME, Config.TVT_EVENT_TEAM_1_COORDINATES);
         _teams[1] = new TvTEventTeam(Config.TVT_EVENT_TEAM_2_NAME, Config.TVT_EVENT_TEAM_2_COORDINATES);
 
@@ -143,8 +152,7 @@ public class TvTEvent {
 
         _npcLocs.addAll(Config.TVT_EVENT_PARTICIPATION_NPC_COORDINATES);
         _npcLocsSize = _npcLocs.size() - 1;
-        //_returnLocsSize = Config.TVT_RETURN_COORDINATES.size() - 1;
-        _returnCount = _returnLocs.size() - 1;
+        _returnLocsSize = Config.TVT_RETURN_COORDINATES.size() - 1;
         if (Config.TVT_CUSTOM_ITEMS) {
             loadItemSettings();
         }
@@ -240,7 +248,7 @@ public class TvTEvent {
                 }
 
                 if (player.isShowPopup()) {
-                    player.sendPacket(new ConfirmDlg(614, "Принять участие в ивенте -TvT-?", 108));
+                    player.sendPacket(new ConfirmDlg(614, "������� ������� � ������ -TvT-?", 108));
                 }
             }
         }
@@ -264,6 +272,7 @@ public class TvTEvent {
 
         // not enought participants
         if (_teams[0].getParticipatedPlayerCount() < Config.TVT_EVENT_MIN_PLAYERS_IN_TEAMS || _teams[1].getParticipatedPlayerCount() < Config.TVT_EVENT_MIN_PLAYERS_IN_TEAMS) {
+            _endTime = 0;
             setState(EventState.INACTIVE);
             _teams[0].cleanMe();
             _teams[1].cleanMe();
@@ -271,10 +280,10 @@ public class TvTEvent {
             _hwids.clear();
             _kills.clear();
             _players.clear();
+            _storedItems.clear();
+            _storedBuffs.clear();
             _forKick.clear();
             _storedLocs.clear();
-            _storedBuffs.clear();
-            _storedItems.clear();
             _playerTeams.put(_teams[0].getName(), new ConcurrentLinkedQueue<Integer>());
             _playerTeams.put(_teams[1].getName(), new ConcurrentLinkedQueue<Integer>());
             unSpawnNpc();
@@ -300,6 +309,16 @@ public class TvTEvent {
                     if (player == null) {
                         //removeParticipant(playerName);
                         continue;
+                    }
+
+                    if (player.getPet() != null)
+                    {
+                        L2Summon summon = player.getPet();
+                        if (summon.isPet()) {
+                            summon.unSummon(player);
+                        } else {
+                            summon.stopAllEffects();
+                        }
                     }
 
                     if (Config.TVT_SAVE_BUFFS)
@@ -328,6 +347,13 @@ public class TvTEvent {
                         player.restoreExp(100.0);
                         player.doRevive();
                     }
+
+                    if (player.isInParty()) {
+                        player.getParty().oustPartyMember(player);
+                    }
+
+                    player.setChannel(8);
+                    player.setIsParalyzed(false);
                 } catch (Exception e) {
                     //removeParticipant(playerName);
                 }
@@ -353,7 +379,6 @@ public class TvTEvent {
                     }
 
                     player.setEventChannel(8);
-                    player.setTvtPassive(true);
 
                     if (Config.TVT_CUSTOM_ITEMS) {
                         equipPlayer(player, _tvtItems.get(player.getClassId().getId()));
@@ -368,6 +393,10 @@ public class TvTEvent {
                         }
                     }
 
+                    if (player.isInParty()) {
+                        player.getParty().oustPartyMember(player);
+                    }
+
                     // implements Runnable and starts itself in constructor
                     new TvTEventTeleporter(player, eteam.getCoordinates(), false, false);
                 } catch (Exception e) {
@@ -376,6 +405,7 @@ public class TvTEvent {
             }
         }
 
+        ThreadPoolManager.getInstance().scheduleGeneral(new RefreshPlayers(), 3000);
         ThreadPoolManager.getInstance().scheduleGeneral(new CheckZone(), 30000);
 
         if (Config.TVT_KILLS_OVERLAY) {
@@ -387,7 +417,33 @@ public class TvTEvent {
         if (Config.TVT_CAHT_SCORE > 0) {
             _scoreTask = EffectTaskManager.getInstance().scheduleAtFixedRate(new ScoreTask(), 1000, Config.TVT_CAHT_SCORE);
         }
+        _endTime = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(Config.TVT_EVENT_RUNNING_TIME);
         return true;
+    }
+
+    static class RefreshPlayers implements Runnable {
+
+        RefreshPlayers() {
+        }
+
+        public void run() {
+            L2PcInstance player = null;
+            for (Integer char_id : _players) {
+                if (char_id == null) {
+                    continue;
+                }
+
+                player = L2World.getInstance().getPlayer(char_id);
+                if (player == null) {
+                    continue;
+                }
+
+                player.setTvtPassive(true);
+                _kills.put(char_id, 0);
+                _teams[0].refreshPoints();
+                _teams[1].refreshPoints();
+            }
+        }
     }
 
     static class ScoreTask implements Runnable {
@@ -396,25 +452,19 @@ public class TvTEvent {
         }
 
         public void run() {
-            SmartSringPacket rsp = SmartScreenTextManager.getInstance().getStringPacket(55);
-            SmartSringPacket rsp2;
-            if (rsp != null)
-            {
-                rsp2 = rsp.copy();
-                rsp2.replaceText("%a%", String.valueOf(_teams[0].getPoints()));
-                rsp2.replaceText("%b%", String.valueOf(_teams[1].getPoints()));
-                for (Integer char_id : _players) {
-                    if (char_id == null) {
-                        continue;
-                    }
+            String rsp = _teams[0].getName() +" : " + String.valueOf(_teams[0].getPoints()) + " | " + _teams[1].getName() + " : " +String.valueOf(_teams[1].getPoints()) + "";
 
-                    L2PcInstance player = L2World.getInstance().getPlayer(char_id);
-                    if (player == null) {
-                        continue;
-                    }
-
-                    player.sendCritMessage(rsp2.getText());
+            for (Integer char_id : _players) {
+                if (char_id == null) {
+                    continue;
                 }
+
+                L2PcInstance player = L2World.getInstance().getPlayer(char_id);
+                if (player == null) {
+                    continue;
+                }
+
+                player.sendCritMessage(rsp);
             }
         }
     }
@@ -425,23 +475,25 @@ public class TvTEvent {
         }
 
         public void run() {
-            for (TvTEventTeam team : _teams) {
-                for (String playerName : team.getParticipatedPlayerNames())
-                {
-                    L2PcInstance player = team.getParticipatedPlayers().get(playerName);
-                    if (player == null) {
-                        continue;
-                    }
-
-                    if (Config.TVT_POLY.contains(player.getX(), player.getY(), player.getZ())) {
-                        continue;
-                    }
-
-                    removeParticipant(player.getName());
-                    player.setEventChannel(1);
-                    player.setTvtPassive(true);
-                    player.teleToClosestTown();
+            L2PcInstance player = null;
+            for (Integer char_id : _players) {
+                if (char_id == null) {
+                    continue;
                 }
+
+                player = L2World.getInstance().getPlayer(char_id);
+                if (player == null) {
+                    continue;
+                }
+
+                if (Config.TVT_POLY.contains(player.getX(), player.getY(), player.getZ())) {
+                    continue;
+                }
+
+                removeParticipant(player.getName());
+                player.setEventChannel(1);
+                player.setTvtPassive(true);
+                player.teleToClosestTown();
             }
         }
     }
@@ -458,22 +510,38 @@ public class TvTEvent {
      *
      * @return String<br>
      */
+    //@Test
     public static String calculateRewards() {
         if (_teams[0].getPoints() == _teams[1].getPoints()) {
             if (_teams[0].getParticipatedPlayerCount() == 0 || _teams[1].getParticipatedPlayerCount() == 0) {
                 // the fight cannot be completed
                 setState(EventState.REWARDING);
+                _hwids_rewards.clear();
                 return Static.TVT_FINISHED_INACTIVE;
             }
 
             sysMsgToAllParticipants(Static.TVT_TEAMS_IN_TIE);
-        }
 
-        while (_teams[0].getPoints() == _teams[1].getPoints()) {
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException ie) {
+            // the fight cannot be completed
+            setState(EventState.REWARDING);
+
+            for (TvTEventTeam team : _teams) {
+                if (team == null) {
+                    continue;
+                }
+                ConcurrentLinkedQueue<Integer> winners = _playerTeams.get(team.getName());
+                for (Integer char_id : winners) {
+                    if (char_id == null) {
+                        continue;
+                    }
+
+                    giveRewardTie(L2World.getInstance().getPlayer(char_id));
+                }
             }
+
+            _hwids_rewards.clear();
+
+            return Static.TVT_FINISHED_TIE;
         }
 
         setState(EventState.REWARDING); // after state REWARDING is set, nobody can point anymore
@@ -481,9 +549,47 @@ public class TvTEvent {
         byte teamId = (byte) (_teams[0].getPoints() > _teams[1].getPoints() ? 0 : 1); // which team wins?
         TvTEventTeam team = _teams[teamId];
 
+        FastList<Integer> rewarded_top = new FastList<>();
+        if (Config.TVT_REWARD_TOP) {
+            Announcements.getInstance().announceToAll("TvT: ��� " + Config.TVT_REWARD_TOP_COUNT + " �� ���������:");
+            ValueComparator vc = new ValueComparator(_kills);
+            TreeMap<Integer, Integer> sortedKills = new TreeMap<Integer, Integer>(vc);
+            sortedKills.putAll(_kills);
+            int i = 1;
+            for (Map.Entry<Integer, Integer> entry : sortedKills.entrySet()) {
+                Integer id = entry.getKey();
+                Integer count = entry.getValue();
+                if (id == null || count == null) {
+                    continue;
+                }
+
+                L2PcInstance player = L2World.getInstance().getPlayer(id);
+                if (player == null) {
+                    continue;
+                }
+                try {
+                    for (int[] reward : player.isPremium() ? Config.TVT_EVENT_REWARDS_TOP_PREMIUM : Config.TVT_EVENT_REWARDS_TOP) {
+                        player.addItem("TvtTop " + Config.TVT_REWARD_TOP_COUNT + " Reward", reward[0], reward[1], player, true);
+                    }
+                } catch (Exception e) {
+                    //
+                }
+                Announcements.getInstance().announceToAll("To�" + i + ": " + player.getName() + "!");
+                i++;
+                rewarded_top.add(id);
+                if (i > Config.TVT_REWARD_TOP_COUNT) {
+                    break;
+                }
+            }
+        }
+
         ConcurrentLinkedQueue<Integer> winners = _playerTeams.get(team.getName());
         for (Integer char_id : winners) {
             if (char_id == null) {
+                continue;
+            }
+
+            if (rewarded_top.contains(char_id)) {
                 continue;
             }
 
@@ -491,16 +597,21 @@ public class TvTEvent {
         }
 
         if (Config.TVT_REWARD_LOOSER > 0) {
-            TvTEventTeam team_looser = _teams[teamId == 1 ? 0 : 1];
+            TvTEventTeam team_looser = _teams[teamId != 1 ? 1 : 0];
             ConcurrentLinkedQueue<Integer> loosers = _playerTeams.get(team_looser.getName());
             for (Integer char_id : loosers) {
                 if (char_id == null) {
                     continue;
                 }
 
+                if (rewarded_top.contains(char_id)) {
+                    continue;
+                }
+
                 giveRewardLooser(L2World.getInstance().getPlayer(char_id));
             }
         }
+
         _hwids_rewards.clear();
 
         String event_end = Static.TVT_S1_WIN_KILLS_S2.replaceAll("%a%", team.getName());
@@ -529,7 +640,7 @@ public class TvTEvent {
 
         if (!Config.EVENTS_SAME_HWID) {
             if (_hwids_rewards.contains(player.getHWID())) {
-                player.sendHtmlMessage("TvT Event", "С вашего компьютера уже получен приз");
+                player.sendHtmlMessage("TvT Event", "� ������ ���������� ��� ������� ����");
                 return;
             }
             _hwids_rewards.add(player.getHWID());
@@ -571,9 +682,14 @@ public class TvTEvent {
         if (Config.TVT_REWARD_CHECK && !player.isEnabledTvtReward()) {
             return;
         }
+
+        if (player.getTvtKills() < Config.TVT_MIN_KILLS_FOR_REWARDS) {
+            return;
+        }
+
         if (!Config.EVENTS_SAME_HWID) {
             if (_hwids_rewards.contains(player.getHWID())) {
-                player.sendHtmlMessage("TvT Event", "С вашего компьютера уже получен приз");
+                player.sendHtmlMessage("TvT Event", "� ������ ���������� ��� ������� ����");
                 return;
             }
             _hwids_rewards.add(player.getHWID());
@@ -599,31 +715,21 @@ public class TvTEvent {
                 sm = SystemMessage.id(SystemMessageId.EARNED_ITEM).addItemName(reward[0]);
             }
             player.sendPacket(sm);
+            sm = null;
         }
 
-        if (Config.TVT_EVENT_REWARDS_TOP_KILLS > 0 && player.getTvtKills() >= Config.TVT_EVENT_REWARDS_TOP_KILLS) {
-            for (int[] reward : Config.TVT_EVENT_REWARDS_TOP) {
-                PcInventory inv = player.getInventory();
-                if (ItemTable.getInstance().createDummyItem(reward[0]).isStackable()) {
-                    inv.addItem("TvT Event", reward[0], reward[1], player, player);
-                }
-                else {
-                    for (int i = 0; i < reward[1]; ++i) {
-                        inv.addItem("TvT Event", reward[0], 1, player, player);
-                    }
+        /*if (Config.TVT_EVENT_REWARDS_TOP_KILLS > 0 && player.getTvtKills() >= Config.TVT_EVENT_REWARDS_TOP_KILLS) {
+            for (FastList.Node<EventReward> k = Config.TVT_PVP_REWARDS.head(), endk = Config.TVT_PVP_REWARDS.tail(); (k = k.getNext()) != endk;) {
+                EventReward reward = k.getValue();
+                if (reward == null) {
+                    continue;
                 }
 
-                if (reward[1] > 1) {
-                    sm = SystemMessage.id(SystemMessageId.EARNED_S2_S1_S).addItemName(reward[0]).addNumber(reward[1]);
+                if (Rnd.get(100) < reward.chance) {
+                    player.addItem("giveItem", reward.id, reward.count, player, true);
                 }
-                else {
-                    sm = SystemMessage.id(SystemMessageId.EARNED_ITEM).addItemName(reward[0]);
-                }
-
-                player.sendPacket(sm);
             }
-        }
-        sm = null;
+        }*/
 
         StatusUpdate statusUpdate = new StatusUpdate(player.getObjectId());
 
@@ -632,7 +738,81 @@ public class TvTEvent {
 
         NpcHtmlMessage npcHtmlMessage = NpcHtmlMessage.id(0);
 
-        npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>Победа! Взгляните в инвентарь, получена награда.</body></html>");
+        npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>������! ��������� � ���������, �������� �������.</body></html>");
+        player.sendPacket(npcHtmlMessage);
+        player.setTvtPassive(true);
+    }
+
+    private static void giveRewardTie(L2PcInstance player) {
+        if (player == null) {
+            return;
+        }
+
+        if (Config.TVT_NO_PASSIVE
+                && player.isTvtPassive()) {
+            return;
+        }
+
+        if (Config.TVT_REWARD_CHECK && !player.isEnabledTvtReward()) {
+            return;
+        }
+
+        if (player.getTvtKills() < Config.TVT_MIN_KILLS_TIE_FOR_REWARDS) {
+            return;
+        }
+
+        if (!Config.EVENTS_SAME_HWID) {
+            if (_hwids_rewards.contains(player.getHWID())) {
+                player.sendHtmlMessage("TvT Event", "� ������ ���������� ��� ������� ����");
+                return;
+            }
+            _hwids_rewards.add(player.getHWID());
+        }
+
+        SystemMessage sm = null;
+        List<int[]> rewards = Config.TVT_EVENT_REWARDS_TIE;
+        for (int[] reward : rewards) {
+
+            PcInventory inv = player.getInventory();
+
+            if (ItemTable.getInstance().createDummyItem(reward[0]).isStackable()) {
+                inv.addItem("TvT Event Tie", reward[0], reward[1], player, player);
+            } else {
+                for (int i = 0; i < reward[1]; i++) {
+                    inv.addItem("TvT Event Tie", reward[0], 1, player, player);
+                }
+            }
+
+            if (reward[1] > 1) {
+                sm = SystemMessage.id(SystemMessageId.EARNED_S2_S1_S).addItemName(reward[0]).addNumber(reward[1]);
+            } else {
+                sm = SystemMessage.id(SystemMessageId.EARNED_ITEM).addItemName(reward[0]);
+            }
+            player.sendPacket(sm);
+            sm = null;
+        }
+
+        /*if (Config.TVT_EVENT_REWARDS_TOP_KILLS > 0 && player.getTvtKills() >= Config.TVT_EVENT_REWARDS_TOP_KILLS) {
+            for (FastList.Node<EventReward> k = Config.TVT_PVP_REWARDS.head(), endk = Config.TVT_PVP_REWARDS.tail(); (k = k.getNext()) != endk;) {
+                EventReward reward = k.getValue();
+                if (reward == null) {
+                    continue;
+                }
+
+                if (Rnd.get(100) < reward.chance) {
+                    player.addItem("giveItem", reward.id, reward.count, player, true);
+                }
+            }
+        }*/
+
+        StatusUpdate statusUpdate = new StatusUpdate(player.getObjectId());
+
+        statusUpdate.addAttribute(StatusUpdate.CUR_LOAD, player.getCurrentLoad());
+        player.sendPacket(statusUpdate);
+
+        NpcHtmlMessage npcHtmlMessage = NpcHtmlMessage.id(0);
+
+        npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>������� ������� ������! ��������� � ���������, �������� ������� �� �������. </body></html>");
         player.sendPacket(npcHtmlMessage);
         player.setTvtPassive(true);
     }
@@ -694,7 +874,7 @@ public class TvTEvent {
                         player.addStatFuncs(s.getStatFuncs(null, player));
                     }
                 }
-                // КОНФИГ ПОКАЖИ
+                // ������ ������
                 new TvTEventTeleporter(player, getRandomRetrunLoc(), false, false, _storedBuffs.get(char_id));
             }
         } else {
@@ -710,6 +890,7 @@ public class TvTEvent {
             }
         }
 
+        _endTime = 0;
         if (_scoreTask != null) {
             _scoreTask.cancel(false);
             _scoreTask = null;
@@ -721,6 +902,8 @@ public class TvTEvent {
         _kills.clear();
         _players.clear();
         //_playersActive.clear();
+        _storedItems.clear();
+        _storedBuffs.clear();
         _forKick.clear();
         _storedLocs.clear();
         _playerTeams.put(_teams[0].getName(), new ConcurrentLinkedQueue<Integer>());
@@ -733,7 +916,7 @@ public class TvTEvent {
     }
 
     public static Location getRandomRetrunLoc() {
-       return Config.TVT_RETURN_COORDINATES.get(Rnd.get(_returnCount));
+       return Config.TVT_RETURN_COORDINATES.get(Rnd.get(_returnLocsSize));
     }
 
     /**
@@ -924,60 +1107,60 @@ public class TvTEvent {
 
         if (command.equals("tvt_event_participation")) {
             if (!Config.TVT_EVENT_ENABLED) {
-                player.sendHtmlMessage("Ивент -ТвТ- отключен.");
+                player.sendHtmlMessage("����� -���- ��������.");
                 return;
             }
             if (Config.TVT_NOBL && !player.isNoble()) {
-                player.sendHtmlMessage("Только ноблессы могут учавствовать.");
+                player.sendHtmlMessage("������ �������� ����� ������������.");
                 return;
             }
             if (Config.MASS_PVP && massPvp.getEvent().isReg(player)) {
-                player.sendHtmlMessage("Удачи на евенте -Масс ПВП-.");
+                player.sendHtmlMessage("����� �� ������ -���� ���-.");
                 return;
             }
             if (Config.ELH_ENABLE && LastHero.getEvent().isRegged(player)) {
-                player.sendHtmlMessage("Вы уже зарегистрированы в евенте -Последний герой-.");
+                player.sendHtmlMessage("�� ��� ���������������� � ������ -��������� �����-.");
                 return;
             }
             if (Config.EBC_ENABLE && BaseCapture.getEvent().isRegged(player)) {
-                player.sendHtmlMessage("Удачи на евенте -Захват базы-");
+                player.sendHtmlMessage("����� �� ������ -������ ����-");
                 return;
             }
             if (Olympiad.isRegisteredInComp(player) || player.isInOlympiadMode()) {
-                player.sendHtmlMessage("Вы уже зарегистрированы на олимпиаде.");
+                player.sendHtmlMessage("�� ��� ���������������� �� ���������.");
                 return;
             }
 
             if (!TvTEvent.isParticipating()) {
-                player.sendHtmlMessage("Регистрация в данный момент не активна.");
+                player.sendHtmlMessage("����������� � ������ ������ �� �������.");
                 return;
             }
 
             if (TvTEvent.isPlayerParticipant(player.getName())) {
-                player.sendHtmlMessage("Вы уже зарегистрированы.");
+                player.sendHtmlMessage("�� ��� ����������������.");
                 return;
             }
             NpcHtmlMessage npcHtmlMessage = NpcHtmlMessage.id(0);
             int playerLevel = player.getLevel();
 
             if (player.isCursedWeaponEquiped()) {
-                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>Персонажи с проклятым оружием не могут учавствовать.</body></html>");
+                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>��������� � ��������� ������� �� ����� ������������.</body></html>");
             } else if (player.getKarma() > 0) {
-                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>У вас плохая карма.</body></html>");
+                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>� ��� ������ �����.</body></html>");
             } else if (Config.TVT_NOBL && !player.isNoble()) {
-                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>Только ноблессы могут принимать участие.</body></html>");
+                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>������ �������� ����� ��������� �������.</body></html>");
             } else if (_teams[0].getParticipatedPlayerCount() >= Config.TVT_EVENT_MAX_PLAYERS_IN_TEAMS && _teams[1].getParticipatedPlayerCount() >= Config.TVT_EVENT_MAX_PLAYERS_IN_TEAMS) {
-                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>Мест нет!</body></html>");
+                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>���� ���!</body></html>");
             } else if (playerLevel < Config.TVT_EVENT_MIN_LVL || playerLevel > Config.TVT_EVENT_MAX_LVL) {
-                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>Только персонажи с " + Config.TVT_EVENT_MIN_LVL + " уровня по " + Config.TVT_EVENT_MAX_LVL + " могут учавствовать.</body></html>");
+                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>������ ��������� � " + Config.TVT_EVENT_MIN_LVL + " ������ �� " + Config.TVT_EVENT_MAX_LVL + " ����� ������������.</body></html>");
             } else if (_teams[0].getParticipatedPlayerCount() > Config.TVT_EVENT_MAX_PLAYERS_IN_TEAMS && _teams[1].getParticipatedPlayerCount() > Config.TVT_EVENT_MAX_PLAYERS_IN_TEAMS) {
-                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>Мест нет! Максимум " + Config.TVT_EVENT_MAX_PLAYERS_IN_TEAMS + "  участников в каждой команде.</body></html>");
+                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>���� ���! �������� " + Config.TVT_EVENT_MAX_PLAYERS_IN_TEAMS + "  ���������� � ������ �������.</body></html>");
             } else if (!Config.EVENTS_SAME_IP && _ips.contains(player.getIP())) {
-                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>Кто-то уже учавствует с вашего IP.</body></html>");
+                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>���-�� ��� ���������� � ������ IP.</body></html>");
             } else if (!Config.EVENTS_SAME_HWID && _hwids.contains(player.getHWID())) {
-                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>Кто-то уже учавствует с вашего IP.</body></html>");
+                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>���-�� ��� ���������� � ������ IP.</body></html>");
             } else if (addParticipant(player)) {
-                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>Вы зарегистрировались.</body></html>");
+                npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>�� ������������������.</body></html>");
             } else // addParticipant returned false cause player == null
             {
                 return;
@@ -989,7 +1172,7 @@ public class TvTEvent {
 
             NpcHtmlMessage npcHtmlMessage = NpcHtmlMessage.id(0);
 
-            npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>Я не трус, но я боюсь?</body></html>");
+            npcHtmlMessage.setHtml("<html><head><title>TvT Event</title></head><body>� �� ����, �� � �����?</body></html>");
             player.sendPacket(npcHtmlMessage);
         }
     }
@@ -1107,7 +1290,7 @@ public class TvTEvent {
     /**
      * Is called when a player is killed<br><br>
      *
-     * @param killerCharacter<br>
+     * @param killer<br>
      * @param killedPlayerInstance<br>
      */
     public static void onKill(L2Character killer, L2PcInstance killedPlayerInstance) {
@@ -1136,13 +1319,13 @@ public class TvTEvent {
 
             updateKillsForPlayer(pcKiller.getObjectId());
 
+            if (Config.TVT_KILL_REWARD) {
+                EventManager.getInstance().giveEventKillReward(killer.getPlayer(), null, Config.TVT_KILLSITEMS);
+            }
+
             if (Config.TVT_KILL_PVP) {
                 pcKiller.increasePvpKills();
                 pcKiller.broadcastUserInfo();
-            }
-
-            if (Config.TVT_KILL_REWARD) {
-                EventManager.getInstance().giveEventKillReward(killer.getPlayer(), null, Config.TVT_KILLSITEMS);
             }
         }
 
@@ -1301,6 +1484,9 @@ public class TvTEvent {
      * @return boolean<br>
      */
     public static boolean isPlayerParticipant(String playerName) {
+        if (_players.isEmpty()) {
+            return false;
+        }
         return _teams[0].containsPlayer(playerName) || _teams[1].containsPlayer(playerName);
     }
 
@@ -1343,7 +1529,7 @@ public class TvTEvent {
     /**
      * Called when a player logs out<br><br>
      *
-     * @param playerInstance<br>
+     * @param player<br>
      */
     public static void onLogout(L2PcInstance player) {
         if (player == null || !Config.TVT_EVENT_ENABLED/* || (!isStarting() && !isStarted())*/) {
@@ -1367,7 +1553,7 @@ public class TvTEvent {
         if (player == null) {
             return;
         }
-        if (!Config.TVT_EVENT_ENABLED || _state != EventState.STARTED) {
+        if (_state != EventState.STARTED) {
             return;
         }
 
@@ -1421,39 +1607,30 @@ public class TvTEvent {
                 return;
             }
             sendKillsOverlay(false);
-            ThreadPoolManager.getInstance().scheduleGeneral(new KillsOverlay(), 5000);
+            ThreadPoolManager.getInstance().scheduleGeneral(new KillsOverlay(), Config.TVT_EVENT_KILLS_OVERLAY * 1000);
         }
     }
 
     private static void sendKillsOverlay(boolean end)
     {
-        SmartSringPacket rsp = SmartScreenTextManager.getInstance().getStringPacket(55);
-        SmartSringPacket rsp2;
-        if (rsp != null)
-        {
-            rsp2 = rsp.copy();
-            rsp2.replaceText("%a%", String.valueOf(_teams[0].getPoints()));
-            rsp2.replaceText("%b%", String.valueOf(_teams[1].getPoints()));
-            if (end) {
-                rsp2.setShowMs(1000);
-            }
-            for (Integer char_id : _players) {
-                if (char_id == null) {
-                    continue;
-                }
+        String screenText = _teams[0].getName() + " : " + String.valueOf(_teams[0].getPoints()) + " | " + _teams[1].getName() + " : " +String.valueOf(_teams[1].getPoints()) + "";
 
-                L2PcInstance player = L2World.getInstance().getPlayer(char_id);
-                if (player == null) {
-                    continue;
-                }
-
-                player.sendPacket(rsp2);
+        for (Integer char_id : _players) {
+            if (char_id == null) {
+                continue;
             }
+
+            L2PcInstance player = L2World.getInstance().getPlayer(char_id);
+            if (player == null) {
+                continue;
+            }
+
+            if(end)
+                player.sendPacket(new ExShowScreenMessage(screenText, 5000, ExShowScreenMessage.ScreenMessageAlign.TOP_CENTER, false, 1, -1, true));
+            else
+                player.sendPacket(new ExShowScreenMessage(screenText, 1000, ExShowScreenMessage.ScreenMessageAlign.TOP_CENTER, false, 1, -1, true));
         }
     }
-
-    private static final Map<Integer, Location> _storedLocs = new ConcurrentHashMap<Integer, Location>();
-    private static final ConcurrentLinkedQueue<Integer> _forKick = new ConcurrentLinkedQueue<Integer>();
 
     static class CheckAFK implements Runnable
     {
@@ -1633,5 +1810,60 @@ public class TvTEvent {
         player.sendItems(false);
         player.broadcastUserInfo();
         //
+    }
+
+    public static void setPeaceZone() {
+        L2PcInstance player;
+        for (Integer char_id : _players) {
+            if (char_id == null) {
+                continue;
+            }
+
+            player = L2World.getInstance().getPlayer(char_id);
+            if (player == null) {
+                continue;
+            }
+
+            player.setEventWait(true);
+        }
+    }
+
+    public static void paralyzePlayers() {
+        L2PcInstance player;
+        for (Integer char_id : _players) {
+            if (char_id == null) {
+                continue;
+            }
+
+            player = L2World.getInstance().getPlayer(char_id);
+            if (player == null) {
+                continue;
+            }
+
+            player.setIsParalyzed(true);
+        }
+    }
+
+    public static boolean isInBattle2(int playerId) {
+        //System.out.println("##isInBattle#1#");
+        if (!Config.TVT_EVENT_ENABLED) {
+            return false;
+        }
+        //System.out.println("##isInBattle#2#");
+
+        if (_state != EventState.STARTED) {
+            return false;
+        }
+
+        //System.out.println("##isInBattle#4#");
+        return _players.contains(playerId);
+    }
+
+    public static boolean isRegisteredPlayer2(int charId) {
+        if (!Config.TVT_EVENT_ENABLED) {
+            return false;
+        }
+
+        return _players.contains(charId);
     }
 }

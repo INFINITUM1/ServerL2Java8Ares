@@ -595,8 +595,6 @@ public class ZoneManager {
             return new L2TvtCheckZone(zoneId);
         } else if (zoneType.equals("AgeColdEvent")) {
             return new L2EventZone(zoneId);
-        } else if (zoneType.equals("AgeColdEvent")) {
-            return new L2EventZone(zoneId);
         } else if (zoneType.equals("DropPenalty")) {
             return new L2DropPenaltyZone(zoneId);
         }

@@ -1426,9 +1426,21 @@ public class L2DonateInstance extends L2NpcInstance {
     private void showVote1Item(L2PcInstance player, int service, int objectId) {
         L2ItemInstance item = player.getInventory().getItemByObjectId(objectId);
         if (item != null) {
-            if (!item.canBeEnchanted()) {
-                showVoteErr0r(player, service, 1);
-                return;
+            if(service == 1)
+            {
+                if(!item.canBeAugmented())
+                {
+                    showVoteErr0r(player, service, 1);
+                    return;
+                }
+            }
+            else if(service == 2)
+            {
+                if(!item.canBeEnchanted())
+                {
+                    showVoteErr0r(player, service, 1);
+                    return;
+                }
             }
 
             if (service == 1 && !item.isAugmented()) {
@@ -1509,9 +1521,21 @@ public class L2DonateInstance extends L2NpcInstance {
     private void showVote2Item(L2PcInstance player, int service, int objectId) {
         L2ItemInstance item = player.getInventory().getItemByObjectId(objectId);
         if (item != null) {
-            if (!item.canBeEnchanted()) {
-                showVoteErr0r(player, service, 1);
-                return;
+            if(service == 1)
+            {
+                if(!item.canBeAugmented())
+                {
+                    showVoteErr0r(player, service, 1);
+                    return;
+                }
+            }
+            else if(service == 2)
+            {
+                if(!item.canBeEnchanted())
+                {
+                    showVoteErr0r(player, service, 1);
+                    return;
+                }
             }
 
             if (service == 1 && item.isAugmented()) {
@@ -1577,9 +1601,21 @@ public class L2DonateInstance extends L2NpcInstance {
         L2ItemInstance item1 = player.getInventory().getItemByObjectId(player.getVote1Item());
         L2ItemInstance item2 = player.getInventory().getItemByObjectId(player.getVote2Item());
         if (item1 != null && item2 != null) {
-            if (!item1.canBeEnchanted() || !item2.canBeEnchanted()) {
-                showVoteErr0r(player, service, 1);
-                return;
+            if(service == 1)
+            {
+                if(!item1.canBeAugmented() || !item2.canBeAugmented())
+                {
+                    showVoteErr0r(player, service, 1);
+                    return;
+                }
+            }
+            else if(service == 2)
+            {
+                if(!item1.canBeEnchanted() || !item2.canBeEnchanted())
+                {
+                    showVoteErr0r(player, service, 1);
+                    return;
+                }
             }
 
             if (service == 1 && !item1.isAugmented()) {
@@ -1678,9 +1714,21 @@ public class L2DonateInstance extends L2NpcInstance {
         L2ItemInstance item1 = player.getInventory().getItemByObjectId(player.getVote1Item());
         L2ItemInstance item2 = player.getInventory().getItemByObjectId(player.getVote2Item());
         if (item1 != null && item2 != null) {
-            if (!item1.canBeEnchanted() || !item2.canBeEnchanted()) {
-                showVoteErr0r(player, service, 1);
-                return;
+            if(service == 1)
+            {
+                if(!item1.canBeAugmented() || !item2.canBeAugmented())
+                {
+                    showVoteErr0r(player, service, 1);
+                    return;
+                }
+            }
+            else if(service == 2)
+            {
+                if(!item1.canBeEnchanted() || !item2.canBeEnchanted())
+                {
+                    showVoteErr0r(player, service, 1);
+                    return;
+                }
             }
 
             if (service == 1 && !item1.isAugmented()) {
@@ -2055,7 +2103,7 @@ public class L2DonateInstance extends L2NpcInstance {
                 continue;
             }
 
-            if (!item.canBeEnchanted()) {
+            if (!item.canBeAugmented()) {
                 continue;
             }
 
@@ -2080,7 +2128,7 @@ public class L2DonateInstance extends L2NpcInstance {
     private void AugsItem(L2PcInstance player, int objectId) {
         L2ItemInstance item = player.getInventory().getItemByObjectId(objectId);
         if (item != null) {
-            if (!item.canBeEnchanted()) {
+            if (!item.canBeAugmented()) {
                 showError(player, "Ошибка запроса.");
                 return;
             }
@@ -2584,7 +2632,7 @@ public class L2DonateInstance extends L2NpcInstance {
             return;
         }
 
-        DonateSkill di = _donateSkills.get(player.getClassId().getId()).get(saleId);
+        DonateSkill di = _donateSkills.get(store).get(saleId);
         if (di == null) {
             showError(player, "Ошибка запроса.");
             return;
@@ -2640,7 +2688,7 @@ public class L2DonateInstance extends L2NpcInstance {
             return;
         }
 
-        DonateSkill di = _donateSkills.get(player.getClassId().getId()).get(saleId);
+        DonateSkill di = _donateSkills.get(store).get(saleId);
         if (di == null) {
             showError(player, "Ошибка запроса.");
             return;
@@ -2673,7 +2721,7 @@ public class L2DonateInstance extends L2NpcInstance {
             expire = System.currentTimeMillis() + TimeUnit.DAYS.toMillis(di.expire); //(14 * 24 * 60 * 60000);//TimeUnit.DAYS.toMillis(14);
         }
         player.addSkill(skill, false);
-        player.addDonateSkill(player.getClassId().getId(), di.id, di.lvl, expire);
+        player.addDonateSkill(store, di.id, di.lvl, expire);
         player.sendHtmlMessage("Уникальный магазин скиллов:", "Вы приобрели скилл: <br> <font color=33FFFF>" + skill.getName() + " (" + di.lvl + " ур.)</font>");
     }
 

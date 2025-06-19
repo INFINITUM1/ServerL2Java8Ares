@@ -256,7 +256,8 @@ public final class SendWareHouseDepositList extends L2GameClientPacket {
         // Перекидываем
         String date = "";
         TextBuilder tb = null;
-        if (Config.LOG_ITEMS) {
+        boolean logCWH = whType == 2/* && Config.LOG_CLAN_WH*/;
+        if (Config.LOG_ITEMS || logCWH) {
             date = Log.getTime();
             tb = new TextBuilder();
         }
@@ -264,13 +265,18 @@ public final class SendWareHouseDepositList extends L2GameClientPacket {
             L2ItemInstance itemToStore = itemsToStoreList.get(i);
             L2ItemInstance itemDropped = inventory.dropItem("depositwh", itemToStore.getObjectId(), _items.get(itemToStore.getObjectId()), player, player.getLastFolkNPC(), true);
             warehouse.addItem(itemDropped, whType);
-            if (Config.LOG_ITEMS && itemDropped != null) {
-                String act = "DEPOSIT " + (player.getFreightTarget() != 0 ? "FREIGHT" : "") + "" + itemDropped.getItemName() + "(" + itemDropped.getCount() + ")(+" + itemDropped.getEnchantLevel() + ")(" + itemDropped.getObjectId() + ")(npc:" + manager.getTemplate().npcId + ") #(player " + player.getName() + ", account: " + player.getAccountName() + ", ip: " + player.getIP() + ", hwid: " + player.getHWID() + ")";
+            if ((Config.LOG_ITEMS || logCWH) && itemDropped != null) {
+                String act = "DEPOSIT " + (player.getFreightTarget() != 0 ? "FREIGHT" : "") + "" + itemDropped.getItemName() + "(" + itemDropped.getCount() + ")(+" + itemDropped.getEnchantLevel() + ")(" + itemDropped.getObjectId() + ")(npc:" + manager.getTemplate().npcId + ") #(Clan: " + player.getClanName() + "," + player.getFingerPrints() + ")";
                 tb.append(date + act + "\n");
             }
         }
-        if (Config.LOG_ITEMS && tb != null) {
-            Log.item(tb.toString(), Log.WAREHOUSE);
+        if ((Config.LOG_ITEMS || logCWH) && tb != null) {
+            if (Config.LOG_ITEMS) {
+                Log.item(tb.toString(), Log.WAREHOUSE);
+            }
+            if (logCWH) {
+                Log.add(tb.toString(), "items/clan_warehouse");
+            }
             tb.clear();
             tb = null;
         }
@@ -292,12 +298,12 @@ public final class SendWareHouseDepositList extends L2GameClientPacket {
          int fee = _count * 30;
          int currentAdena = player.getAdena();
          int slots = 0;
-        
+
          for (int i = 0; i < _count; i++)
          {
          int objectId = _items[i * 2 + 0];
          int count = _items[i * 2 + 1];
-        
+
          // Check validity of requested item
          L2ItemInstance item = player.checkItemManipulation(objectId, count, "deposit");
          if (item == null)
@@ -307,69 +313,69 @@ public final class SendWareHouseDepositList extends L2GameClientPacket {
          _items[i * 2 + 1] = 0;
          continue;
          }
-        
+
          if ((warehouse instanceof ClanWarehouse) && !item.isTradeable() || item.getItemType() == L2EtcItemType.QUEST) return;
          // Calculate needed adena and slots
          if (item.getItemId() == 57) currentAdena -= count;
          if (!item.isStackable()) slots += count;
          else if (warehouse.getItemByItemId(item.getItemId()) == null) slots++;
          }
-        
+
          // Item Max Limit Check
          if (!warehouse.validateCapacity(slots))
          {
          sendPacket(SystemMessage.id(SystemMessageId.YOU_HAVE_EXCEEDED_QUANTITY_THAT_CAN_BE_INPUTTED));
          return;
          }
-        
+
          // Check if enough adena and charge the fee
          if (currentAdena < fee || !player.reduceAdena("Warehouse", fee, player.getLastFolkNPC(), false))
          {
          sendPacket(Static.YOU_NOT_ENOUGH_ADENA);
          return;
          }
-        
+
          // Proceed to the transfer
          //InventoryUpdate playerIU = Config.FORCE_INVENTORY_UPDATE ? null : new InventoryUpdate();
          for (int i = 0; i < _count; i++)
          {
          int objectId = _items[i * 2 + 0];
          int count = _items[i * 2 + 1];
-        
+
          // check for an invalid item
          if (objectId == 0 && count == 0) continue;
-        
+
          L2ItemInstance oldItem = player.getInventory().getItemByObjectId(objectId);
          if (oldItem == null)
          {
          _log.warning("Error depositing a warehouse object for char "+player.getName()+" (olditem == null)");
          continue;
          }
-        
+
          int itemId = oldItem.getItemId();
-        
+
          if ((itemId >= 6611 && itemId <= 6621) || itemId == 6842)
          continue;
-        
+
          L2ItemInstance newItem = player.getInventory().transferItem("Warehouse", objectId, count, warehouse, player, player.getLastFolkNPC());
          if (newItem == null)
          {
          _log.warning("Error depositing a warehouse object for char "+player.getName()+" (newitem == null)");
          continue;
          }
-        
+
          //if (playerIU != null)
          //{
          // 	if (oldItem.getCount() > 0 && oldItem != newItem) playerIU.addModifiedItem(oldItem);
          // 	else playerIU.addRemovedItem(oldItem);
          // }
          }
-        
+
          // Send updated item list to the player
          //if (playerIU != null) player.sendPacket(playerIU);
-         //else 
+         //else
          player.sendPacket(new ItemList(player, true));
-        
+
          // Update current load status on player
          player.sendChanges();*/
     }

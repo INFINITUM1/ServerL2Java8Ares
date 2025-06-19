@@ -108,6 +108,10 @@ public class TvTEventTeam {
         _points++;
     }
 
+    public void refreshPoints() {
+        _points = 0;
+    }
+
     /**
      * Cleanup the team and make it ready for adding players again<br>
      */

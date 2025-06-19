@@ -17,8 +17,10 @@
  */
 package ru.agecold.gameserver.network;
 
-import ru.agecold.Config;
+import ru.agecold.gameserver.network.smartguard.SmartGuard;
 import ru.agecold.util.Rnd;
+import smartguard.core.properties.GuardProperties;
+import smartguard.spi.SmartGuardSPI;
 
 /**
  * Blowfish keygen for GameServer client connections
@@ -32,40 +34,21 @@ public class BlowFishKeygen {
     static {
         // init the GS encryption keys on class load
 
-        if (Config.CATS_GUARD) {
-            for (int i = 0; i < CRYPT_KEYS_SIZE; i++) {
-                // randomize the 8 first bytes
-                for (int j = 0; j < CRYPT_KEYS[i].length; j++) {
-                    CRYPT_KEYS[i][j] = (byte) Rnd.get(255);
-                }
-
-                // the last 8 bytes are static
-                CRYPT_KEYS[i][8] = (byte) 0xc8;
-                CRYPT_KEYS[i][9] = (byte) 0x27;
-                CRYPT_KEYS[i][10] = (byte) 0x93;
-                CRYPT_KEYS[i][11] = (byte) 0x01;
-                CRYPT_KEYS[i][12] = (byte) 0xa1;
-                CRYPT_KEYS[i][13] = (byte) 0x6c;
-                CRYPT_KEYS[i][14] = (byte) 0x31;
-                CRYPT_KEYS[i][15] = (byte) 0x97;
+        for (int i = 0; i < CRYPT_KEYS_SIZE; i++) {
+            // randomize the 8 first bytes
+            for (int j = 0; j < CRYPT_KEYS[i].length; j++) {
+                CRYPT_KEYS[i][j] = (byte) Rnd.get(255);
             }
-        } else {
-            for (int i = 0; i < CRYPT_KEYS_SIZE; i++) {
-                // randomize the 8 first bytes
-                for (int j = 0; j < CRYPT_KEYS[i].length; j++) {
-                    CRYPT_KEYS[i][j] = (byte) Rnd.get(255);
-                }
 
-                // the last 8 bytes are static
-                CRYPT_KEYS[i][8] = (byte) 0xc8;
-                CRYPT_KEYS[i][9] = (byte) 0x27;
-                CRYPT_KEYS[i][10] = (byte) 0x93;
-                CRYPT_KEYS[i][11] = (byte) 0x01;
-                CRYPT_KEYS[i][12] = (byte) 0xa1;
-                CRYPT_KEYS[i][13] = (byte) 0x6c;
-                CRYPT_KEYS[i][14] = (byte) 0x31;
-                CRYPT_KEYS[i][15] = (byte) 0x97;
-            }
+            // the last 8 bytes are static
+            CRYPT_KEYS[i][8] = (byte) 0xc8;
+            CRYPT_KEYS[i][9] = (byte) 0x27;
+            CRYPT_KEYS[i][10] = (byte) 0x93;
+            CRYPT_KEYS[i][11] = (byte) 0x01;
+            CRYPT_KEYS[i][12] = (byte) 0xa1;
+            CRYPT_KEYS[i][13] = (byte) 0x6c;
+            CRYPT_KEYS[i][14] = (byte) 0x31;
+            CRYPT_KEYS[i][15] = (byte) 0x97;
         }
     }
 
@@ -79,6 +62,9 @@ public class BlowFishKeygen {
      * @return A key from this keygen pool.
      */
     public static byte[] getRandomKey() {
-        return CRYPT_KEYS[Rnd.get(CRYPT_KEYS_SIZE)];
+        if(SmartGuard.isActive())
+            return SmartGuardSPI.getSmartGuardService().getCryptManager().getRandomBlowFishKey();
+        else
+            return CRYPT_KEYS[Rnd.get(CRYPT_KEYS_SIZE)];
     }
 }

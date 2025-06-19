@@ -234,7 +234,7 @@ public class LoginServerThread extends Thread {
                             //now, only accept paket with the new encryption
                             _blowfish = new NewCrypt(_blowfishKey);
                             //if (Config.DEBUG)_log.info("Changed blowfish key");
-                            sendPacket(new AuthRequest(_requestID, _acceptAlternate, _hexID, _gameExternalHost, _gameInternalHost, _gamePorts, _reserveHost, _maxPlayer, Config.SERVER_SERIAL_KEY, Config.CATS_GUARD));
+                            sendPacket(new AuthRequest(_requestID, _acceptAlternate, _hexID, _gameExternalHost, _gameInternalHost, _gamePorts, _reserveHost, _maxPlayer, Config.SERVER_SERIAL_KEY));
                             //if (Config.DEBUG)_log.info("Sent AuthRequest to login");
                             break;
                         case 01:
@@ -250,29 +250,7 @@ public class LoginServerThread extends Thread {
                             String account = par.getAccount();
                             WaitingClient wcToRemove = _waitingClients.get(account);
                             if (wcToRemove != null && wcToRemove.isConnected()) {
-                                if (Config.CATS_GUARD) {
-                                    if (par.isAuthed()) {
-                                        //if (Config.DEBUG)_log.info("Login accepted player "+wcToRemove.account+" waited("+(GameTimeController.getGameTicks()-wcToRemove.timestamp)+"ms)");
-                                        wcToRemove.gameClient.setAuthed(true);
-                                        wcToRemove.gameClient.startPingTask();
-
-                                        sendPacket(new PlayerInGame(par.getAccount()));
-                                        wcToRemove.gameClient.setState(GameClientState.AUTHED);
-                                        wcToRemove.gameClient.setSessionId(wcToRemove.session);
-                                        CharSelectInfo cl = new CharSelectInfo(wcToRemove.account, wcToRemove.gameClient.getSessionId().playOkID1);
-                                        wcToRemove.gameClient.sendPacket(cl);
-                                        wcToRemove.gameClient.setCharSelection(cl.getCharInfo());
-                                        //
-                                        wcToRemove.gameClient.setHasEmail(par.hasEmail());
-                                        wcToRemove.gameClient.setMyHWID(par.getHWID());
-                                        wcToRemove.gameClient.setLastServerId(par.getServerId());
-                                    } else {
-                                        _log.warning(TimeLogger.getLogTime() + "session key is not correct. closing connection; account: " + account);
-                                        wcToRemove.gameClient.getConnection().sendPacket(new AuthLoginFail(1));
-                                        wcToRemove.gameClient.closeNow();
-                                        Log.add(TimeLogger.getTime() + "# " + account + " " + par.getHWID(), "wrong_hwid");
-                                    }
-                                } else if (par.isAuthed() && wcToRemove.gameClient.acceptHWID(par.getHWID(), (Config.GAMEGUARD_ENABLED && Config.VS_HWID))) {
+                                if (par.isAuthed() && wcToRemove.gameClient.acceptHWID(par.getHWID())) {
                                     wcToRemove.gameClient.setAuthed(true);
                                     wcToRemove.gameClient.startPingTask();
                                     //if (Config.DEBUG)_log.info("Login accepted player "+wcToRemove.account+" waited("+(GameTimeController.getGameTicks()-wcToRemove.timestamp)+"ms)");

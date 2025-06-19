@@ -40,12 +40,7 @@ import ru.agecold.gameserver.model.L2Object;
 import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
 import ru.agecold.gameserver.model.entity.olympiad.Olympiad;
 import ru.agecold.gameserver.network.serverpackets.MagicSkillUser;
-import ru.agecold.gameserver.network.serverpackets.SmartSringPacket;
 import ru.agecold.gameserver.network.serverpackets.WareHouseDepositList;
-import ru.akumu.smartguard.core.model.d3d.Color;
-import ru.akumu.smartguard.core.model.d3d.FontStyle;
-import ru.akumu.smartguard.core.model.d3d.PredefinedMsg;
-import ru.akumu.smartguard.core.model.d3d.ScreenPos;
 import scripts.autoevents.lasthero.LastHero;
 import scripts.commands.IAdminCommandHandler;
 
@@ -119,12 +114,7 @@ public class AdminTest implements IAdminCommandHandler {
             LoginServerThread.getInstance().testDown();
             activeChar.sendAdmResultMessage("Ok.");
         } else if (command.equals("admin_mpt")) {
-            activeChar.sendPacket(new SmartSringPacket(1, "Тест Test TEСТ1", 12, "Arial", PredefinedMsg.None, new Color(100, 156, 255, 0), ScreenPos.MiddleLeft, FontStyle.Normal));
-            activeChar.sendPacket(new SmartSringPacket(2, "Тест Test TEСТ2", 12, "Comic Sans MS", PredefinedMsg.None, new Color(100, 156, 255, 0), ScreenPos.MiddleCenter, FontStyle.Normal));
-            activeChar.sendPacket(new SmartSringPacket(3, "Тест Test TEСТ3", 12, "Comic Sans MS", PredefinedMsg.None, new Color(100, 156, 255, 0), ScreenPos.MiddleRight, FontStyle.Normal));
-            activeChar.sendPacket(new SmartSringPacket(4, "Тест Test TEСТ1", 16, "Times New Roman", PredefinedMsg.None, new Color(100, 156, 255, 0), ScreenPos.TopCenter, FontStyle.Normal));
-            activeChar.sendPacket(new SmartSringPacket(5, "Тест Test TEСТ2", 8, "Terminal", PredefinedMsg.None, new Color(100, 156, 255, 0), ScreenPos.TopLeft, FontStyle.Normal));
-            activeChar.sendPacket(new SmartSringPacket(6, "Тест Test TEСТ3", 12, "Tahoma", PredefinedMsg.None, new Color(100, 156, 255, 0), ScreenPos.TopRight, FontStyle.Normal));
+            return false;
         } else if (command.equals("admin_mhs")) {
             if (activeChar.getTarget() == null) {
                 activeChar.sendAdmResultMessage("Неправильная цель.");

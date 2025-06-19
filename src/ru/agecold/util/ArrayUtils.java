@@ -56,6 +56,32 @@ public final class ArrayUtils {
         return (T[]) Array.newInstance(type, 1);
     }
 
+    public static boolean contains(int[] array, int valueToFind) {
+        return indexOf(array, valueToFind) != -1;
+    }
+
+    public static int indexOf(int[] array, int valueToFind) {
+        return indexOf(array, valueToFind, 0);
+    }
+
+    public static int indexOf(int[] array, int valueToFind, int startIndex) {
+        if (array == null) {
+            return -1;
+        } else {
+            if (startIndex < 0) {
+                startIndex = 0;
+            }
+
+            for(int i = startIndex; i < array.length; ++i) {
+                if (valueToFind == array[i]) {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+    }
+
     /**
      * Check if value is one of the elements of array
      *

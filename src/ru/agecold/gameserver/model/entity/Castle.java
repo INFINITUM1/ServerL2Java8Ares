@@ -1009,24 +1009,53 @@ public class Castle {
 
     public void updateClansReputation() {
         if (_formerOwner != null) {
-            if (_formerOwner != ClanTable.getInstance().getClan(getOwnerId())) {
-                int maxreward = Math.max(0, _formerOwner.getReputationScore());
-                _formerOwner.setReputationScore(_formerOwner.getReputationScore() - 1000, true);
-                L2Clan owner = ClanTable.getInstance().getClan(getOwnerId());
-                if (owner != null) {
-                    owner.addPoints(Math.min(1000, maxreward));
-                    owner.broadcastToOnlineMembers(new PledgeShowInfoUpdate(owner));
+            if(Config.UPDATE_CRP_AFTER_SET_FLAG)
+            {
+                if(_formerOwner != ClanTable.getInstance().getClan(getOwnerId()))
+                {
+                    int maxreward = Math.max(0, _formerOwner.getReputationScore());
+                    _formerOwner.setReputationScore(_formerOwner.getReputationScore() - 1000, true);
+                    L2Clan owner = ClanTable.getInstance().getClan(getOwnerId());
+                    if(owner != null)
+                    {
+                        owner.addPoints(Math.min(1000, maxreward));
+                        owner.broadcastToOnlineMembers(new PledgeShowInfoUpdate(owner));
+                    }
                 }
-            } else {
-                _formerOwner.addPoints(500);
+                else
+                {
+                    _formerOwner.addPoints(500);
+                }
+            }
+            else
+            {
+                if (_formerOwner != ClanTable.getInstance().getClan(getOwnerId())) {
+                    //int maxreward = Math.max(0, _formerOwner.getReputationScore());
+                    //_formerOwner.setReputationScore(_formerOwner.getReputationScore() - 1000, true);
+                    L2Clan owner = ClanTable.getInstance().getClan(getOwnerId());
+                    if (owner != null) {
+                        //owner.addPoints(Math.min(1000, maxreward));
+                        owner.broadcastToOnlineMembers(new PledgeShowInfoUpdate(owner));
+                    }
+                } else {
+                    //_formerOwner.addPoints(500);
+                }
             }
 
             _formerOwner.broadcastToOnlineMembers(new PledgeShowInfoUpdate(_formerOwner));
         } else {
             L2Clan owner = ClanTable.getInstance().getClan(getOwnerId());
             if (owner != null) {
-                owner.addPoints(1000);
-                owner.broadcastToOnlineMembers(new PledgeShowInfoUpdate(owner));
+                if(Config.UPDATE_CRP_AFTER_SET_FLAG)
+                {
+                    owner.addPoints(1000);
+                    owner.broadcastToOnlineMembers(new PledgeShowInfoUpdate(owner));
+                }
+                else
+                {
+                    //owner.addPoints(1000);
+                    owner.broadcastToOnlineMembers(new PledgeShowInfoUpdate(owner));
+                }
             }
         }
     }
@@ -1138,6 +1167,20 @@ public class Castle {
         }
 
         clan.setBonusSkill();
+        if(_ownerIdLast == _ownerId)
+            giceCRPReward(Config.SIEGE_CASTLE_CRP.get(getCastleId()), clan);
+        else
+            giceCRPReward(Config.SIEGE_CASTLE_CRP.get(getCastleId()), clan);
+    }
+
+    private void giceCRPReward(Integer points, L2Clan clan) {
+        if (clan == null) {
+            return;
+        }
+        if (points == null) {
+            return;
+        }
+        clan.addPoints(points);
     }
 
     public void disableOwnerBonus(boolean f) {

@@ -43,8 +43,6 @@ import ru.agecold.gameserver.model.L2Object;
 import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
 import ru.agecold.mysql.Close;
 import ru.agecold.mysql.Connect;
-import ru.agecold.util.Location;
-import ru.agecold.util.Rnd;
 
 /**
  * General Utility functions related to Gameserver
@@ -322,9 +320,55 @@ public final class Util {
 
     // фильтр левых ников от хтмл символов
     public static String htmlSpecialChars(String word) {
+        word = word.replaceAll("!", "&excl;");
+        word = word.replaceAll("@", "&commat;");
+        word = word.replaceAll("#", "&num;");
+        word = word.replaceAll("\\$", "&dollar;");
+        word = word.replaceAll("%", "&percnt;");
+        word = word.replaceAll("\\^", "&Hat;");
+        word = word.replaceAll("\\*", "&ast;");
+        word = word.replaceAll("\\(", "&lpar;");
+        word = word.replaceAll("\\)", "&rpar;");
+        word = word.replaceAll("\\.", "&period;");
+        word = word.replaceAll(",", "&comma;");
+        word = word.replaceAll(";", "&semi;");
+        word = word.replaceAll("/", "&sol;");
+        word = word.replaceAll("\\|", "&verbar;");
+        //word = val.replaceAll("&bsol;", "\");
+        word = word.replaceAll("\\?", "&quest;");
+        word = word.replaceAll("\\+", "&plus;");
+        word = word.replaceAll(":", "&colon;");
+        word = word.replaceAll("'", "&apos;");
+        word = word.replaceAll("_", "&lowbar;");
         word = word.replaceAll("<", "&lt;");
         word = word.replaceAll(">", "&gt;");
-        word = word.replaceAll("\\$", "");
+        return word;
+    }
+
+    // фильтр левых ников от хтмл символов
+    public static String htmlSpecialConvert(String word) {
+        word = word.replaceAll("!", "&excl;");
+        word = word.replaceAll("@", "&commat;");
+        word = word.replaceAll("#", "&num;");
+        word = word.replaceAll("\\$", "&dollar;");
+        word = word.replaceAll("%", "&percnt;");
+        word = word.replaceAll("\\^", "&Hat;");
+        word = word.replaceAll("\\*", "&ast;");
+        word = word.replaceAll("\\(", "&lpar;");
+        word = word.replaceAll("\\)", "&rpar;");
+        word = word.replaceAll("\\.", "&period;");
+        word = word.replaceAll(",", "&comma;");
+        word = word.replaceAll(";", "&semi;");
+        word = word.replaceAll("/", "&sol;");
+        word = word.replaceAll("\\|", "&verbar;");
+        //word = val.replaceAll("&bsol;", "\");
+        word = word.replaceAll("\\?", "&quest;");
+        word = word.replaceAll("\\+", "&plus;");
+        word = word.replaceAll(":", "&colon;");
+        word = word.replaceAll("'", "&apos;");
+        word = word.replaceAll("_", "&lowbar;");
+        word = word.replaceAll("<", "&lt;");
+        word = word.replaceAll(">", "&gt;");
         return word;
     }
 
@@ -373,7 +417,26 @@ public final class Util {
             return false;
         }
 
+        if (!isValidName(name)) {
+            return false;
+        }
+
         return true;
+    }
+
+    private static final Pattern cnamePattern = Pattern.compile(Config.DON_CNAME_TEMPLATE);//Pattern.compile("[\\w\\u005F\\u002E]+", Pattern.UNICODE_CASE);
+
+    private static boolean isValidName(String text) {
+        /* Pattern pattern;
+         try {
+         pattern = Pattern.compile(Config.CNAME_TEMPLATE);
+         } catch (PatternSyntaxException e) // case of illegal pattern
+         {
+         _log.warning("ERROR : Character name pattern of config is wrong!");
+         pattern = Pattern.compile(".*");
+         }*/
+
+        return cnamePattern.matcher(text).matches();
     }
 
     public static boolean isExistsName(String name) {
@@ -598,5 +661,11 @@ public final class Util {
 
     public static boolean isAllowedRegExp(String string) {
         return ruPattern.matcher(string).matches() != enPattern.matcher(string).matches();
+    }
+
+    public static void append(StringBuilder sb, Object... content)
+    {
+        for(Object obj : content)
+            sb.append(obj == null ? null : obj.toString());
     }
 }

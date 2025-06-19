@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javolution.util.FastList;
 import org.w3c.dom.Document;
@@ -33,11 +34,13 @@ import ru.agecold.Config;
 import ru.agecold.L2DatabaseFactory;
 import ru.agecold.gameserver.cache.Static;
 import ru.agecold.gameserver.datatables.ArmorSetsTable;
+import ru.agecold.gameserver.datatables.CustomServerData;
 import ru.agecold.gameserver.datatables.ItemTable;
 import ru.agecold.gameserver.datatables.SkillTable;
 import ru.agecold.gameserver.instancemanager.CastleManager;
 import ru.agecold.gameserver.model.L2ItemInstance.ItemLocation;
 import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
+import ru.agecold.gameserver.model.actor.instance.L2PlayableInstance;
 import ru.agecold.gameserver.templates.L2Armor;
 import ru.agecold.gameserver.templates.L2EtcItem;
 import ru.agecold.gameserver.templates.L2EtcItemType;
@@ -64,6 +67,11 @@ public abstract class Inventory extends ItemContainer {
 
         public void notifyUnequiped(int slot, L2ItemInstance inst);
     }
+
+    public interface OnDisplayListener {
+
+        Integer onDisplay(int slot, L2ItemInstance item, L2PlayableInstance playable);
+    }
     public static final int PAPERDOLL_UNDER = 0;
     public static final int PAPERDOLL_LEAR = 1;
     public static final int PAPERDOLL_REAR = 2;
@@ -86,6 +94,7 @@ public abstract class Inventory extends ItemContainer {
     public static final double MAX_ARMOR_WEIGHT = 12000;
     private final L2ItemInstance[] _paperdoll;
     private final List<PaperdollListener> _paperdollListeners;
+    private OnDisplayListener _onDisplayListener;
     // protected to be accessed from child classes only
     protected int _totalWeight;
     // used to quickly check for using of items of special type
@@ -501,6 +510,77 @@ public abstract class Inventory extends ItemContainer {
         }
     }
 
+    private static class ItemFakeAppearanceDisplayListener implements OnDisplayListener
+    {
+        private final Map<Integer, Integer> itemsMap;
+
+        private ItemFakeAppearanceDisplayListener(Map<Integer, Integer> itemsMap)
+        {
+            this.itemsMap = itemsMap;
+        }
+
+        @Override
+        public Integer onDisplay(int slot, L2ItemInstance item, L2PlayableInstance playable)
+        {
+            return itemsMap.get(slot);
+        }
+    }
+
+    public static final class ItemFakeAppearanceEquipListener implements PaperdollListener
+    {
+        Inventory _inv;
+
+        public ItemFakeAppearanceEquipListener(Inventory inv)
+        {
+            _inv = inv;
+        }
+
+        @Override
+        public void notifyEquiped(int slot, L2ItemInstance item) {
+            if(item == null)
+                return;
+            //if(_inv == null)
+            //	return;
+            if(_inv.getOwner() == null)
+                return;
+            if(!_inv.getOwner().isPlayer())
+                return;
+            setEquippedFakeItem(_inv.getOwner().getPlayer(), item);
+        }
+
+        @Override
+        public void notifyUnequiped(int slot, L2ItemInstance item) {
+            if(item == null)
+                return;
+            //if(_inv == null)
+            //	return;
+            if(_inv.getOwner() == null)
+                return;
+            if(!_inv.getOwner().isPlayer())
+                return;
+            if(!CustomServerData.getInstance().getFakeItems().containsKey(item.getItemId()))
+                return;
+            setUnequippedFakeItem(_inv.getOwner().getPlayer());
+        }
+    }
+
+    public static boolean setEquippedFakeItem(L2PcInstance player, L2ItemInstance item)
+    {
+        Map<Integer, Integer> itemsMap = CustomServerData.getInstance().getFakeItems().get(item.getItemId());
+        if(itemsMap == null || itemsMap.isEmpty())
+            return false;
+        player.getInventory().setOnDisplayListener(new ItemFakeAppearanceDisplayListener(itemsMap));
+        return true;
+    }
+
+    private static boolean setUnequippedFakeItem(L2PcInstance player)
+    {
+        if(player.getInventory().getOnDisplayListener() == null)
+            return false;
+        player.getInventory().setOnDisplayListener(null);
+        return true;
+    }
+
     /**
      * Constructor of the inventory
      */
@@ -511,7 +591,7 @@ public abstract class Inventory extends ItemContainer {
         addPaperdollListener(new BowListener());
         addPaperdollListener(new ItemPassiveSkillsListener());
         addPaperdollListener(new StatsListener());
-        //addPaperdollListener(new FormalWearListener());
+        addPaperdollListener(new ItemFakeAppearanceEquipListener(this));
     }
 
     protected abstract ItemLocation getEquipLocation();
@@ -649,10 +729,14 @@ public abstract class Inventory extends ItemContainer {
         return _paperdoll[slot];
     }
 
+    public L2ItemInstance[] getPaperdollItems() {
+        return _paperdoll;
+    }
+
     /**
      * Returns the item in the paperdoll L2Item slot
      *
-     * @param L2Item slot identifier
+     * @param slot identifier
      * @return L2ItemInstance
      */
     public L2ItemInstance getPaperdollItemByL2ItemId(int slot) {
@@ -706,12 +790,23 @@ public abstract class Inventory extends ItemContainer {
     public int getPaperdollItemId(int slot) {
         L2ItemInstance item = _paperdoll[slot];
         if (item != null) {
+            if(getOnDisplayListener() != null)
+            {
+                Integer displayId = getOnDisplayListener().onDisplay(slot, item, ((L2PlayableInstance) getOwner()));
+                if(displayId != null)
+                    return displayId;
+            }
             return item.getItemId();
         } else if (slot == PAPERDOLL_HAIR) {
             item = _paperdoll[PAPERDOLL_DHAIR];
             if (item != null) {
                 return item.getItemId();
             }
+        } else if(getOnDisplayListener() != null)
+        {
+            Integer displayId = getOnDisplayListener().onDisplay(slot, null, ((L2PlayableInstance) getOwner()));
+            if(displayId != null)
+                return displayId;
         }
         return 0;
     }
@@ -737,12 +832,23 @@ public abstract class Inventory extends ItemContainer {
     public int getPaperdollObjectId(int slot) {
         L2ItemInstance item = _paperdoll[slot];
         if (item != null) {
+            if(getOnDisplayListener() != null)
+            {
+                Integer displayId = getOnDisplayListener().onDisplay(slot, item, ((L2PlayableInstance) getOwner()));
+                if(displayId != null)
+                    return displayId;
+            }
             return item.getObjectId();
         } else if (slot == PAPERDOLL_HAIR) {
             item = _paperdoll[PAPERDOLL_DHAIR];
             if (item != null) {
                 return item.getObjectId();
             }
+        } else if(getOnDisplayListener() != null)
+        {
+            Integer displayId = getOnDisplayListener().onDisplay(slot, null, ((L2PlayableInstance) getOwner()));
+            if(displayId != null)
+                return displayId;
         }
         return 0;
     }
@@ -750,7 +856,7 @@ public abstract class Inventory extends ItemContainer {
     /**
      * Adds new inventory's paperdoll listener
      *
-     * @param PaperdollListener pointing out the listener
+     * @param listener pointing out the listener
      */
     public synchronized void addPaperdollListener(PaperdollListener listener) {
         if (Config.ASSERT) {
@@ -762,10 +868,20 @@ public abstract class Inventory extends ItemContainer {
     /**
      * Removes a paperdoll listener
      *
-     * @param PaperdollListener pointing out the listener to be deleted
+     * @param listener pointing out the listener to be deleted
      */
     public synchronized void removePaperdollListener(PaperdollListener listener) {
         _paperdollListeners.remove(listener);
+    }
+
+    public OnDisplayListener getOnDisplayListener()
+    {
+        return _onDisplayListener;
+    }
+
+    public void setOnDisplayListener(OnDisplayListener onDisplayListener)
+    {
+        _onDisplayListener = onDisplayListener;
     }
 
     /**
@@ -1541,5 +1657,50 @@ public abstract class Inventory extends ItemContainer {
         {
             this.runes.addAll(listId);
         }
+    }
+
+    public static int getPaperdollIndex(int slot)
+    {
+        switch(slot)
+        {
+            case L2Item.SLOT_UNDERWEAR:
+                return PAPERDOLL_UNDER;
+            case L2Item.SLOT_R_EAR:
+                return PAPERDOLL_REAR;
+            case L2Item.SLOT_L_EAR:
+                return PAPERDOLL_LEAR;
+            case L2Item.SLOT_NECK:
+                return PAPERDOLL_NECK;
+            case L2Item.SLOT_R_FINGER:
+                return PAPERDOLL_RFINGER;
+            case L2Item.SLOT_L_FINGER:
+                return PAPERDOLL_LFINGER;
+            case L2Item.SLOT_HEAD:
+                return PAPERDOLL_HEAD;
+            case L2Item.SLOT_R_HAND:
+                return PAPERDOLL_RHAND;
+            case L2Item.SLOT_L_HAND:
+                return PAPERDOLL_LHAND;
+            case L2Item.SLOT_LR_HAND:
+                return PAPERDOLL_RHAND;
+            case L2Item.SLOT_GLOVES:
+                return PAPERDOLL_GLOVES;
+            case L2Item.SLOT_CHEST:
+            case L2Item.SLOT_FULL_ARMOR:
+            //case L2Item.SLOT_FORMAL_WEAR:
+                return PAPERDOLL_CHEST;
+            case L2Item.SLOT_LEGS:
+                return PAPERDOLL_LEGS;
+            case L2Item.SLOT_FEET:
+                return PAPERDOLL_FEET;
+            case L2Item.SLOT_BACK:
+                return PAPERDOLL_BACK;
+            case L2Item.SLOT_HAIR:
+            //case L2Item.SLOT_HAIRALL:
+                return PAPERDOLL_HAIR;
+            case L2Item.SLOT_DHAIR:
+                return PAPERDOLL_DHAIR;
+        }
+        return -1;
     }
 }

@@ -34,7 +34,7 @@ public class AuthRequest extends GameServerBasePacket {
      * @param reserveHost
      * @param maxplayer
      */
-    public AuthRequest(int id, boolean acceptAlternate, byte[] hexid, String externalHost, String internalHost, int[] ports, boolean reserveHost, int maxplayer, String key, boolean catsguard) {
+    public AuthRequest(int id, boolean acceptAlternate, byte[] hexid, String externalHost, String internalHost, int[] ports, boolean reserveHost, int maxplayer, String key) {
         writeC(0xaf);
         writeC(id);
         writeC(acceptAlternate ? 0x01 : 0x00);
@@ -46,7 +46,7 @@ public class AuthRequest extends GameServerBasePacket {
         writeB(hexid);
         writeS(externalHost);
         writeS(internalHost);
-        writeC(catsguard ? 1 : 0);
+        writeC(0);
         writeH(ports.length);
         for (int PORT_GAME : ports) {
             writeH(PORT_GAME);

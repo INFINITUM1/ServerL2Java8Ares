@@ -152,6 +152,29 @@ public class AdminTeleport implements IAdminCommandHandler {
         } else if (command.startsWith("admin_teleportto ")) {
             try {
                 String targetName = command.substring(17);
+                //Util.nameSlashes(targetName);
+                targetName = targetName.replaceAll("&lt;", "<");
+                targetName = targetName.replaceAll("&gt;", ">");
+                targetName = targetName.replaceAll("&excl;", "!");
+                targetName = targetName.replaceAll("&commat;", "@");
+                targetName = targetName.replaceAll("&num;", "#");
+                targetName = targetName.replaceAll("&dollar;", "$");
+                targetName = targetName.replaceAll("&percnt;", "%");
+                targetName = targetName.replaceAll("&Hat;", "^");
+                targetName = targetName.replaceAll("&ast;", "*");
+                targetName = targetName.replaceAll("&lpar;", "(");
+                targetName = targetName.replaceAll("&rpar;", ")");
+                targetName = targetName.replaceAll("&period;", ".");
+                targetName = targetName.replaceAll("&comma;", ",");
+                targetName = targetName.replaceAll("&semi;", ";");
+                targetName = targetName.replaceAll("&sol;", "/");
+                targetName = targetName.replaceAll("&verbar;", "|");
+                //targetName = targetName.replaceAll("&bsol;", "\");
+                targetName = targetName.replaceAll("&quest;", "?");
+                targetName = targetName.replaceAll("&plus;", "+");
+                targetName = targetName.replaceAll("&colon;", ":");
+                targetName = targetName.replaceAll("&apos;", "'");
+                targetName = targetName.replaceAll("&lowbar;", "_");
                 L2PcInstance player = L2World.getInstance().getPlayer(targetName);
                 teleportToCharacter(activeChar, player);
             } catch (StringIndexOutOfBoundsException e) {
@@ -159,6 +182,28 @@ public class AdminTeleport implements IAdminCommandHandler {
         } else if (command.startsWith("admin_recall ")) {
             try {
                 String targetName = command.substring(13);
+                targetName = targetName.replaceAll("&lt;", "<");
+                targetName = targetName.replaceAll("&gt;", ">");
+                targetName = targetName.replaceAll("&excl;", "!");
+                targetName = targetName.replaceAll("&commat;", "@");
+                targetName = targetName.replaceAll("&num;", "#");
+                targetName = targetName.replaceAll("&dollar;", "$");
+                targetName = targetName.replaceAll("&percnt;", "%");
+                targetName = targetName.replaceAll("&Hat;", "^");
+                targetName = targetName.replaceAll("&ast;", "*");
+                targetName = targetName.replaceAll("&lpar;", "(");
+                targetName = targetName.replaceAll("&rpar;", ")");
+                targetName = targetName.replaceAll("&period;", ".");
+                targetName = targetName.replaceAll("&comma;", ",");
+                targetName = targetName.replaceAll("&semi;", ";");
+                targetName = targetName.replaceAll("&sol;", "/");
+                targetName = targetName.replaceAll("&verbar;", "|");
+                //targetName = targetName.replaceAll("&bsol;", "\");
+                targetName = targetName.replaceAll("&quest;", "?");
+                targetName = targetName.replaceAll("&plus;", "+");
+                targetName = targetName.replaceAll("&colon;", ":");
+                targetName = targetName.replaceAll("&apos;", "'");
+                targetName = targetName.replaceAll("&lowbar;", "_");
                 L2PcInstance player = L2World.getInstance().getPlayer(targetName);
                 if (activeChar.getAccessLevel() >= REQUIRED_LEVEL2) {
                     teleportCharacter(player, activeChar.getX(), activeChar.getY(), activeChar.getZ());

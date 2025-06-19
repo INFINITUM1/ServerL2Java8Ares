@@ -10,7 +10,10 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -41,10 +44,15 @@ import ru.agecold.gameserver.network.serverpackets.ConfirmDlg;
 import ru.agecold.gameserver.network.serverpackets.CreatureSay;
 import ru.agecold.gameserver.network.serverpackets.PledgeSkillList;
 import ru.agecold.gameserver.network.serverpackets.SystemMessage;
+import ru.agecold.gameserver.skills.Env;
+import ru.agecold.gameserver.skills.Stats;
+import ru.agecold.gameserver.skills.funcs.Func;
+import ru.agecold.gameserver.templates.L2Item;
 import ru.agecold.gameserver.templates.L2NpcTemplate;
 import ru.agecold.gameserver.util.Util;
 import ru.agecold.mysql.Close;
 import ru.agecold.mysql.Connect;
+import ru.agecold.util.ArrayUtils;
 import ru.agecold.util.Location;
 import ru.agecold.util.Rnd;
 import ru.agecold.util.log.AbstractLogger;
@@ -52,6 +60,7 @@ import org.mmocore.network.nio.impl.MMOConnection;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import scripts.StatModifier;
 
 // TODO [V] - пересмотреть
 public class CustomServerData {
@@ -118,6 +127,13 @@ public class CustomServerData {
 
         if (Config.CUSTOM_PREMIUM_DROP) {
             cachePremiumDrop();
+        }
+
+        if (Config.ENABLE_FAKE_ITEMS_MOD) {
+            fakeItems();
+        }
+        if (Config.ENABLE_BALANCE_SYSTEM) {
+            balanceSystem();
         }
 
         cacheSoldSkills();
@@ -2546,6 +2562,55 @@ public class CustomServerData {
         _log.config("CustomServerData: Custom Premium Drop, loaded " + _allPremiumDrop.size() + " mobs.");
     }
 
+    private static Map<Integer, Map<Integer, Integer>> _fakeItems = new HashMap<Integer, Map<Integer, Integer>>();
+
+    private void fakeItems() {
+        try {
+            File file = new File(Config.DATAPACK_ROOT, "data/item_fake_appearance.xml");
+            if (!file.exists()) {
+                _log.config("CustomServerData [ERROR]: data/item_fake_appearance.xml doesn't exist");
+                return;
+            }
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setValidating(false);
+            factory.setIgnoringComments(true);
+            Document doc = factory.newDocumentBuilder().parse(file);
+            for (Node n = doc.getFirstChild(); n != null; n = n.getNextSibling()) {
+                if ("list".equalsIgnoreCase(n.getNodeName())) {
+                    for (Node d = n.getFirstChild(); d != null; d = d.getNextSibling()) {
+                        if ("item".equalsIgnoreCase(d.getNodeName()))
+                        {
+                            NamedNodeMap attrs = d.getAttributes();
+                            int itemId = Integer.parseInt(attrs.getNamedItem("itemId").getNodeValue());
+
+                            Map<Integer, Integer> slots = new HashMap<Integer, Integer>();
+                            for (Node cd = d.getFirstChild(); cd != null; cd = cd.getNextSibling()) {
+                                if ("display".equalsIgnoreCase(cd.getNodeName())) {
+                                    attrs = cd.getAttributes();
+
+                                    int displayId = Integer.parseInt(attrs.getNamedItem("itemId").getNodeValue());
+
+                                    L2Item item = ItemTable.getInstance().getTemplate(displayId);
+                                    int slot = Inventory.getPaperdollIndex(item.getBodyPart());
+                                    slots.put(slot, item.getItemId());
+                                }
+                            }
+                            _fakeItems.put(itemId, slots);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            _log.warning("CustomServerData [ERROR]: fakeItems() " + e.toString());
+        }
+        _log.config("CustomServerData: Custom Fake Items, loaded " + _fakeItems.size() + " items.");
+    }
+
+    public Map<Integer, Map<Integer, Integer>> getFakeItems()
+    {
+        return _fakeItems;
+    }
+
     public boolean isPremiumMob(int id) {
         return _allPremiumDrop.containsKey(id);
     }
@@ -2578,5 +2643,274 @@ public class CustomServerData {
         }
         reward = null;
         return found;
+    }
+
+    private static class StatMod
+    {
+        private final ModCond[] _conds;
+        private final Stats _stat;
+        private double mul = 1.;
+        private double add = 0.;
+
+        private StatMod(ModCond[] conds, Stats stat)
+        {
+            _conds = conds.clone();
+            _stat = stat;
+        }
+
+        public boolean test(L2PcInstance player, L2Character target)
+        {
+            for(ModCond cond : _conds)
+            {
+                if(!cond.test(player, target))
+                    return false;
+            }
+            return true;
+        }
+
+        public Stats getStat()
+        {
+            return _stat;
+        }
+
+        public double getMul()
+        {
+            return mul;
+        }
+
+        public void addMul(double value)
+        {
+            mul += value;
+        }
+
+        public double getAdd()
+        {
+            return add;
+        }
+
+        public void setAdd(double value)
+        {
+            add = value;
+        }
+    }
+
+    private static abstract class ModCond
+    {
+        public abstract boolean test(L2PcInstance player, L2Character target);
+    }
+
+    private static Map<Stats, Map<Integer, List<StatMod>>> _stats = new HashMap<Stats, Map<Integer, List<StatMod>>>();
+
+    public final Map<Stats, Map<Integer, List<StatMod>>> getStats()
+    {
+        return _stats;
+    }
+
+    private void balanceSystem() {
+        _stats.clear();
+        try {
+            File file = new File(Config.DATAPACK_ROOT, "data/stats_custom_mod.xml");
+            if (!file.exists()) {
+                _log.config("CustomServerData [ERROR]: data/stats_custom_mod.xml doesn't exist");
+                return;
+            }
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setValidating(false);
+            factory.setIgnoringComments(true);
+            Document doc = factory.newDocumentBuilder().parse(file);
+
+            Map<Stats, Map<Integer, List<StatMod>>> listStats = new HashMap<Stats, Map<Integer, List<StatMod>>>();
+            for (Node n = doc.getFirstChild(); n != null; n = n.getNextSibling()) {
+                if ("list".equalsIgnoreCase(n.getNodeName())) {
+                    for (Node d = n.getFirstChild(); d != null; d = d.getNextSibling()) {
+                        if ("player".equalsIgnoreCase(d.getNodeName()))
+                        {
+                            NamedNodeMap attrs = d.getAttributes();
+                            int classId = Integer.parseInt(attrs.getNamedItem("classId").getNodeValue());
+
+                            //for (Node cd = d.getFirstChild(); cd != null; cd = cd.getNextSibling()) {
+                                for(StatMod statMod : parseListStats(d, classId, new ModCond[0]))
+                                {
+                                    Map<Integer, List<StatMod>> statsForClasess = listStats.get(statMod.getStat());
+                                    if(statsForClasess == null)
+                                    {
+                                        listStats.put(statMod.getStat(), statsForClasess = new HashMap<Integer, List<StatMod>>());
+                                    }
+                                    List<StatMod> statMods = statsForClasess.get(classId);
+                                    if(statMods == null)
+                                    {
+                                        statsForClasess.put(classId, statMods = new ArrayList<StatMod>());
+                                    }
+                                    statMods.add(statMod);
+                                }
+                            //}
+                        }
+                    }
+                }
+            }
+            _stats.putAll(listStats);
+        } catch (Exception e) {
+            _log.warning("CustomServerData [ERROR]: balanceSystem() " + e.toString());
+        }
+        _log.config("CustomServerData: Custom Balance Stats, loaded " + _stats.size() + " stats.");
+    }
+
+    private List<StatMod> parseListStats(Node node, final int classId, ModCond[] conds)
+    {
+        List<StatMod> statMods = new ArrayList<StatMod>();
+        conds = ArrayUtils.add(conds, new ModCond()
+        {
+            @Override
+            public boolean test(L2PcInstance player, L2Character target)
+            {
+                return player != null && player.getActiveClass() == classId;
+            }
+        });
+        for(Node cd = node.getFirstChild(); cd != null; cd = cd.getNextSibling())
+        {
+            if("targetPlayer".equalsIgnoreCase(cd.getNodeName()))
+            {
+                NamedNodeMap attrs = cd.getAttributes();
+                int targetClassId = Integer.parseInt(attrs.getNamedItem("classId").getNodeValue());
+                statMods.addAll(parseTargetStats(cd, targetClassId, conds));
+            }
+            else if("equipedWith".equalsIgnoreCase(cd.getNodeName()))
+            {
+                statMods.addAll(parseItems(cd, conds));
+            }
+        }
+        statMods.addAll(parseStats(node, conds.clone()));
+        return statMods;
+    }
+
+    private List<StatMod> parseStats(Node node, ModCond[] conds)
+    {
+        List<StatMod> statMods = new ArrayList<StatMod>();
+        for(Node cd = node.getFirstChild(); cd != null; cd = cd.getNextSibling())
+        {
+            NamedNodeMap attrs = cd.getAttributes();
+            StatMod statMod;
+            if("mul".equalsIgnoreCase(cd.getNodeName()))
+            {
+                statMod = new StatMod(conds, Stats.valueOfXml(attrs.getNamedItem("stat").getNodeValue(), ""));
+                statMod.addMul(Double.parseDouble(attrs.getNamedItem("val").getNodeValue()) - 1.);
+                statMods.add(statMod);
+            }
+            else if("add".equalsIgnoreCase(cd.getNodeName()))
+            {
+                statMod = new StatMod(conds, Stats.valueOfXml(attrs.getNamedItem("stat").getNodeValue(),  ""));
+                statMod.setAdd(Double.parseDouble(attrs.getNamedItem("val").getNodeValue()));
+                statMods.add(statMod);
+            }
+        }
+        return statMods;
+    }
+
+    private List<StatMod> parseTargetStats(Node node, final int classId, ModCond[] conds)
+    {
+        List<StatMod> statMods = new ArrayList<StatMod>();
+        conds = ArrayUtils.add(conds, new ModCond()
+        {
+            @Override
+            public boolean test(L2PcInstance player, L2Character target)
+            {
+                return target != null && target.isPlayer() && target.getPlayer().getActiveClass() == classId;
+            }
+        });
+        statMods.addAll(parseStats(node, conds));
+        return statMods;
+    }
+
+    private List<StatMod> parseItems(Node node, ModCond[] conds)
+    {
+        List<StatMod> statMods = new ArrayList<StatMod>();
+
+        NamedNodeMap attrs = node.getAttributes();
+        final int itemId = Integer.parseInt(attrs.getNamedItem("itemId").getNodeValue());
+        final L2Item item = ItemTable.getInstance().getTemplate(itemId);
+        conds = ArrayUtils.add(conds, new ModCond()
+        {
+            @Override
+            public boolean test(L2PcInstance player, L2Character target)
+            {
+                if(player == null)
+                {
+                    return false;
+                }
+                PcInventory inventory = player.getInventory();
+                int slot = Inventory.getPaperdollIndex(item.getBodyPart());
+                if(slot < 0)
+                {
+                    return false;
+                }
+                return inventory.getPaperdollItemId(slot) == slot;
+            }
+        });
+        statMods.addAll(parseStats(node, conds));
+        return statMods;
+    }
+
+    public void onReloadBalanceSystem()
+    {
+        onShutdownBalanceSystem();
+    }
+
+    public void onShutdownBalanceSystem()
+    {
+        if(!_stats.isEmpty())
+        {
+            for(L2PcInstance player : L2World.getInstance().getAllPlayers())
+            {
+                removeStats(player);
+            }
+        }
+    }
+
+    private void removeStats(L2PcInstance player)
+    {
+        if(player == null)
+        {
+            return;
+        }
+        player.removeStatsOwner(this);
+    }
+
+    public void addStats(L2PcInstance player)
+    {
+        for(Map.Entry<Stats, Map<Integer, List<StatMod>>> entryStat : _stats.entrySet())
+        {
+            Stats stat = entryStat.getKey();
+            Map<Integer, List<StatMod>> listStats = entryStat.getValue();
+            player.addStatFunc(new Func(stat, 80, this)
+            {
+                @Override
+                public void calc(Env env)
+                {
+                    if(env.cha == null || !env.cha.isPlayer())
+                    {
+                        return;
+                    }
+                    L2PcInstance player = (L2PcInstance) env.cha;
+
+                    List<StatMod> statMods = listStats.get(player.getActiveClass());
+                    if(statMods == null || statMods.isEmpty())
+                    {
+                        return;
+                    }
+                    double mul = 1.;
+                    double add = 0.;
+                    for(StatMod statMod : statMods)
+                    {
+                        if(statMod.test(player, env.target))
+                        {
+                            mul += statMod.getMul() - 1.;
+                            add += statMod.getAdd();
+                        }
+                    }
+                    env.value *= mul;
+                    env.value += add;
+                }
+            });
+        }
     }
 }

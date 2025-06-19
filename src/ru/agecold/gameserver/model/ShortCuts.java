@@ -75,6 +75,11 @@ public class ShortCuts
 		return sc;//_shortCuts.values().toArray(new L2ShortCut[_shortCuts.values().size()]);
     }
 
+	public L2ShortCut[] getShortcuts()
+	{
+		return _shortCuts.values().toArray(new L2ShortCut[_shortCuts.values().size()]);
+	}
+
     public L2ShortCut getShortCut(int slot, int page)
     {
 		L2ShortCut sc = _shortCuts.get(slot + page * 12);

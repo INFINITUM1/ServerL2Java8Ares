@@ -19,25 +19,46 @@
 package ru.agecold.gameserver.network.clientpackets;
 
 import ru.agecold.gameserver.GmListTable;
+import ru.agecold.gameserver.network.smartguard.SmartGuard;
+import ru.agecold.gameserver.network.smartguard.integration.SmartClient;
+import smartguard.api.ISmartGuardService;
+import smartguard.core.properties.GuardProperties;
+import smartguard.spi.SmartGuardSPI;
 
 /**
  * This class handles RequestGmLista packet triggered by /gmlist command
  *
  * @version $Revision: 1.1.4.2 $ $Date: 2005/03/27 15:29:30 $
  */
-public final class RequestGmList extends L2GameClientPacket
+public class RequestGmList extends L2GameClientPacket
 {
+	private byte[] data = null;
+
 	@Override
 	protected void readImpl()
 	{
-
+		if(SmartGuard.isActive() && _buf.remaining() > 2)
+		{
+			final int dataLen = readH();
+			if(_buf.remaining() >= dataLen)
+			{
+				readB(data = new byte[dataLen]);
+			}
+		}
 	}
 
 	@Override
 	protected void runImpl()
 	{
-		if (getClient().getActiveChar() == null)
-		    return;
-		GmListTable.getInstance().sendListToPlayer(getClient().getActiveChar());
+		if(SmartGuard.isActive() && data != null)
+		{
+			ISmartGuardService svc = SmartGuardSPI.getSmartGuardService();
+			svc.getSmartGuardBus().onClientData(new SmartClient(getClient()), data);
+			return;
+		}
+		if(getClient().getActiveChar() != null)
+		{
+			GmListTable.getInstance().sendListToPlayer(getClient().getActiveChar());
+		}
 	}
 }

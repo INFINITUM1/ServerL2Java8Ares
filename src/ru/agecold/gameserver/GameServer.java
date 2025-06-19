@@ -33,6 +33,7 @@ import ru.agecold.gameserver.model.entity.TvTManager;
 import ru.agecold.gameserver.model.entity.olympiad.Olympiad;
 import ru.agecold.gameserver.network.L2GameClient;
 import ru.agecold.gameserver.network.L2GamePacketHandler;
+import ru.agecold.gameserver.network.smartguard.SmartGuard;
 import ru.agecold.gameserver.pathfinding.PathFinding;
 import ru.agecold.gameserver.skills.Formulas;
 import ru.agecold.gameserver.taskmanager.AttackStanceTaskManager;
@@ -53,8 +54,6 @@ import ru.agecold.util.Log;
 import ru.agecold.util.log.AbstractLogger;
 import ru.agecold.util.TimeLogger;
 
-import ru.agecold.gameserver.util.protection.GameGuard;
-
 import scripts.clanhalls.BanditStronghold;
 import scripts.commands.AdminCommandHandler;
 import scripts.commands.UserCommandHandler;
@@ -70,7 +69,6 @@ import scripts.scripting.CompiledScriptCache;
 import scripts.scripting.L2ScriptEngineManager;
 import scripts.skills.SkillHandler;
 
-import ru.agecold.gameserver.util.protection.catsguard.CatsGuard;
 import org.mmocore.network.nio.impl.SelectorConfig;
 import org.mmocore.network.nio.impl.SelectorStats;
 import org.mmocore.network.nio.impl.SelectorThread;
@@ -452,7 +450,6 @@ public class GameServer {
         //FakePlayersTable.init();
         FakePlayersTablePlus.init();
         ExpiredItemsTaskManager.start();
-        SmartScreenTextManager.init();
 
         if (Config.CACHED_SERVER_STAT) {
             CustomServerData.getInstance().cacheStat();
@@ -489,12 +486,9 @@ public class GameServer {
             CustomServerData.getInstance().restoreOfflineTraders();
         }
 
-        GameGuard.getInstance().startCheckTask();
-        if (Config.CATS_GUARD) {
-            CatsGuard.init();
-        }
-
         HwidSpamTable.init();
+
+        //SmartGuard.load();
 
         AbstractLogger.setLoaded();
     }
@@ -529,7 +523,6 @@ public class GameServer {
          System.out.println("####" + new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(new java.util.Date(time)));
          System.out.println("####" + new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(new java.util.Date(time)));
          System.out.println("####" + new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(new java.util.Date(time)));*/
-        GameGuard.init();
 
         // Create log folder
         new File(Config.DATAPACK_ROOT, "log").mkdir();

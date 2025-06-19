@@ -235,7 +235,9 @@ public class TvTManager implements Runnable {
                         }
                         break;
                     case 5: // 5 seconds left
-                        if (TvTEvent.isStarted()) {
+                        if (TvTEvent.isParticipating()) {
+                            TvTEvent.paralyzePlayers();
+                        } else if (TvTEvent.isStarted()) {
                             String event_end = Static.TVT_GAME_END_S1_SECS_WINNERS_S2.replaceAll("%a%", String.valueOf(seconds));
                             TvTEvent.spMsgToAllParticipants(event_end.replaceAll("%b%", winner));
                         }
@@ -264,6 +266,7 @@ public class TvTManager implements Runnable {
                         } else if (TvTEvent.isStarted()) {
                             TvTEvent.spMsgToAllParticipants(Static.TVT_GAME_END_S1_SECS.replaceAll("%a%", String.valueOf(seconds)));
                         }
+                        TvTEvent.setPeaceZone();
                         break;
                 }
             }

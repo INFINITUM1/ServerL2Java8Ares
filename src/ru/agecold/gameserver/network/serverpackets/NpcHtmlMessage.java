@@ -18,8 +18,15 @@
  */
 package ru.agecold.gameserver.network.serverpackets;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import ru.agecold.gameserver.cache.HtmCache;
+import ru.agecold.gameserver.model.L2World;
+import ru.agecold.gameserver.model.actor.instance.L2NpcInstance;
 import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
 import ru.agecold.gameserver.network.clientpackets.RequestBypassToServer;
 
@@ -29,12 +36,14 @@ public class NpcHtmlMessage extends L2GameServerPacket {
     //
 
     private static final Logger _log = Logger.getLogger(RequestBypassToServer.class.getName());
-    private int _npcObjId;
+    private final int _npcObjId;
     private String _html;
+    private String _file = null;
+    private List<String> _replaces = new ArrayList<String>();
 
-    /**
-     * @param _characters
-     */
+    private static final Pattern objectId = Pattern.compile("%objectId%");
+    private static final Pattern playername = Pattern.compile("%playername%");
+
     public static NpcHtmlMessage id(int npcObjId, String text) {
         return new NpcHtmlMessage(npcObjId, text);
     }
@@ -52,104 +61,72 @@ public class NpcHtmlMessage extends L2GameServerPacket {
         _npcObjId = npcObjId;
     }
 
-    /*@Override
-     public void runImpl() {
-     //System.out.println("##runImpl#1#" + (getClient() == null));
-     if (Config.BYPASS_VALIDATION) {
-     buildBypassCache(getClient().getActiveChar());
-     }
-     }*/
-    public void setHtml(String text) {
-        if (text.length() > 8192) {
-            _log.warning("Html is too long! this will crash the client!");
-            _html = "<html><body>Html was too long</body></html>";
-            return;
-        }
+    public NpcHtmlMessage setHtml(String text) {
         _html = text; // html code must not exceed 8192 bytes
-    }
-
-    public boolean setFile(String path) {
-        String content = HtmCache.getInstance().getHtm(path);
-
-        if (content == null) {
-            setHtml("<html><body>My Text is missing:<br>" + path + "</body></html>");
-            _log.warning("missing html page " + path);
-            return false;
-        }
-
-        setHtml(content);
-        return true;
-    }
-
-    public void replace(String pattern, String value) {
-        _html = _html.replaceAll(pattern, value);
-    }
-
-    public void replace(String pattern, int value) {
-        _html = _html.replaceAll(pattern, String.valueOf(value));
-    }
-
-    public NpcHtmlMessage replaceAndGet(String pattern, String value) {
-        _html = _html.replaceAll(pattern, value);
         return this;
     }
 
-    private void buildBypassCache(L2PcInstance activeChar) {
-        if (activeChar == null) {
-            return;
-        }
+    public NpcHtmlMessage setFile(String file) {
+        _file = file;
+        return this;
+    }
 
-        activeChar.clearBypass();
-        int len = _html.length();
-        for (int i = 0; i < len; i++) {
-            int start = _html.indexOf("bypass -h", i);
-            int finish = _html.indexOf("\"", start);
+    public NpcHtmlMessage replace(String pattern, String value) {
+        if(pattern == null || value == null)
+            return this;
+        _replaces.add(pattern);
+        _replaces.add(value);
+        return this;
+    }
 
-            if (start < 0 || finish < 0) {
-                break;
-            }
-
-            start += 10;
-            i = start;
-            int finish2 = _html.indexOf("$", start);
-            if (finish2 < finish && finish2 > 0) {
-                activeChar.addBypass2(_html.substring(start, finish2));
-            } else {
-                activeChar.addBypass(_html.substring(start, finish));
-            }
-            //System.err.println("["+_html.substring(start, finish)+"]");
-        }
+    public NpcHtmlMessage replace(String pattern, int value) {
+        if(pattern == null || value == 0)
+            return this;
+        _replaces.add(pattern);
+        _replaces.add(String.valueOf(value));
+        return this;
     }
 
     @Override
     protected final void writeImpl() {
-        writeC(0x0f);
-
-        //System.out.println(_npcObjId);
-        writeD(_npcObjId);
-        //writeS(_html);
-       /* L2PcInstance player = getClient().getActiveChar();
-         if (player == null) {
-         return;
-         }*/
-        writeProtectedHTM(getClient().getActiveChar());
-        //System.out.println("##3#");
-        //Log.add(_html, "HTMLtest");
-
-        //player.cleanBypasses(false);
-        //String html = player.encodeBypasses(_html, false);
-        //writeProtectedHTM(player.encodeBypasses(_html, false));
-        //Log.add(html, "HTMLtest");
-        //writeS(html);
-        writeD(0x00);
-    }
-
-    private void writeProtectedHTM(L2PcInstance player) {
-        if (player == null) {
+        L2PcInstance player = getClient().getActiveChar();
+        if(player == null)
+        {
             return;
         }
-        player.cleanBypasses(false);
-        //String html = player.encodeBypasses(_html, false);
-        writeS(player.encodeBypasses(_html, false));
+
+        if(_file != null) //TODO может быть не очень хорошо сдесь это делать...
+        {
+            if(player.isGM())
+                player.sendHTMLMessage(_file);
+
+            setHtml(HtmCache.getInstance().getHtm(_file));
+        }
+
+        for(int i = 0; i < _replaces.size(); i += 2)
+            _html = _html.replace(_replaces.get(i), _replaces.get(i + 1));
+
+        if(_html == null)
+        {
+            L2NpcInstance npc = (L2NpcInstance) L2World.getInstance().findObject(_npcObjId);
+            _log.warning("NpcHtmlMessage, _html == null, npc: " + npc + ", file: " + _file);
+            return;
+        }
+
+        Matcher m = objectId.matcher(_html);
+        if(m != null)
+            _html = m.replaceAll(String.valueOf(_npcObjId));
+
+        _html = playername.matcher(_html).replaceAll(player.getName());
+
+        player.getBypassStorage().parseHtml(_html, false);
+
+        if(_html.length() > 8192)
+            _html = "<html><body><center>Sorry, to long html.</center></body></html>";
+
+        writeC(0x0f);
+        writeD(_npcObjId);
+        writeS(_html);
+        writeD(0x00);
     }
 }

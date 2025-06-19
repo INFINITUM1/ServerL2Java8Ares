@@ -40,6 +40,11 @@ public final class UseItem extends L2GameClientPacket {
             return;
         }
 
+        doAction(player, item);
+    }
+
+    public static void doAction(L2PcInstance player, L2ItemInstance item)
+    {
         if (item.getItemId() == 57 || player.isParalyzed()) {
             return;
         }
@@ -173,7 +178,7 @@ public final class UseItem extends L2GameClientPacket {
         }
     }
 
-    private boolean forbidWeapon(L2PcInstance player, L2Weapon weaponItem, L2ItemInstance item) {
+    private static boolean forbidWeapon(L2PcInstance player, L2Weapon weaponItem, L2ItemInstance item) {
         if (weaponItem == null) {
             return false;
         }
@@ -186,7 +191,7 @@ public final class UseItem extends L2GameClientPacket {
         }
 
         if (item.getItemId() == 8192 && weaponItem.getItemType() != L2WeaponType.BOW) {
-            player.sendMessage("Используется с луком");
+            player.sendMessage("������������ � �����");
             return true;
         }
         return false;

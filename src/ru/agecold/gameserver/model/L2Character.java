@@ -58,6 +58,8 @@ import ru.agecold.gameserver.util.PeaceZone;
 import ru.agecold.gameserver.util.Util;
 import ru.agecold.util.Location;
 import ru.agecold.util.Rnd;
+import ru.agecold.util.reference.HardReference;
+import ru.agecold.util.reference.L2Reference;
 import scripts.skills.ISkillHandler;
 import scripts.skills.SkillHandler;
 
@@ -146,6 +148,7 @@ public abstract class L2Character extends L2Object {
     public static final int ZONE_MONSTERTRACK = 512;
     public static final int ZONE_BOSS = 1024;
     private int _currentZones = 0;
+    protected HardReference<? extends L2Character> reference;
 
     public boolean isInsideZone(int zone) {
         return ((_currentZones & zone) != 0);
@@ -197,6 +200,13 @@ public abstract class L2Character extends L2Object {
     public L2Character(int objectId, L2CharTemplate template) {
         super(objectId);
         init(template);
+        reference = new L2Reference<L2Character>(this);
+    }
+
+    @Override
+    public HardReference<? extends L2Character> getRef()
+    {
+        return reference;
     }
 
     private void init(L2CharTemplate template) {
@@ -871,7 +881,7 @@ public abstract class L2Character extends L2Object {
         return false;
     }
 
-    // запрет на атаку луком конкретным профам
+    // ������ �� ����� ����� ���������� ������
     public boolean isForbidBow(L2ItemInstance weapon) {
         if (weapon == null || !weapon.isBowWeapon()) {
             return false;
@@ -891,7 +901,7 @@ public abstract class L2Character extends L2Object {
         return false;
     }
 
-    // запрет на атаку костетами конкретным профам
+    // ������ �� ����� ��������� ���������� ������
     public boolean isForbidFist(L2ItemInstance weapon) {
         if (weapon == null || !weapon.isFistWeapon()) {
             return false;
@@ -902,7 +912,7 @@ public abstract class L2Character extends L2Object {
         return false;
     }
 
-    // запрет на атаку дуалами конкретным профам
+    // ������ �� ����� ������� ���������� ������
     public boolean isForbidDual(L2ItemInstance weapon) {
         if (weapon == null || !weapon.isDualWeapon()) {
             return false;
@@ -1412,11 +1422,14 @@ public abstract class L2Character extends L2Object {
 
         if (isInOlympiadMode()) {
             if (skill.isFixedHitTimeOly()) {
-                hitTime = (int) Config.ALT_FIXED_HIT_TIME.get(skill.getId());
+                hitTime = (int) Config.ALT_FIXED_HIT_TIME_OLY.get(skill.getId());
             }
         }
         else if (skill.isFixedHitTime()) {
-            hitTime = (int) Config.ALT_FIXED_HIT_TIME_OLY.get(skill.getId());
+            hitTime = (int) Config.ALT_FIXED_HIT_TIME.get(skill.getId());
+        }
+        else if (skill.isStaticHitTime() && Config.ENABLE_STATIC_HIT_TIME) {
+            hitTime = skill.getHitTime();
         }
 
         //System.out.println("13 / "+(System.currentTimeMillis()-start));
@@ -1502,7 +1515,7 @@ public abstract class L2Character extends L2Object {
     }
 
     private int calcReuseDelay(L2Skill skill, int reuseDelay) {
-        if (skill.isFixedReuse()) {
+        if (skill.isFixedReuse() || (Config.ENABLE_STATIC_REUSE && skill.isStaticReuse())) {
             reuseDelay = skill.getReuseDelay();
         } else {
             if (skill.isMagic()) {
@@ -1789,7 +1802,7 @@ public abstract class L2Character extends L2Object {
     }
 
     /**
-     * Дебаффы на флаги, гвардов...
+     * ������� �� �����, �������...
      */
     public boolean isDebuffProtected() {
         return false;
@@ -2217,7 +2230,7 @@ public abstract class L2Character extends L2Object {
                 onHitTimer(_hitTarget, _damage, _crit, _miss, _soulshot, _shld);
                 getAI().notifyEvent(CtrlEvent.EVT_READY_TO_ACT);
             } catch (Throwable e) {
-                _log.severe(e.toString());
+                //_log.severe(e.toString());
             }
         }
     }
@@ -2249,7 +2262,6 @@ public abstract class L2Character extends L2Object {
                         break;
                     case 2:
                         onMagicHitTimer(_targets, _skill, _coolTime, false, _hitTime);
-                        ;
                         break;
                     case 3:
                         onMagicFinalizer(_skill, _targets.getFirst());
@@ -4656,7 +4668,7 @@ public abstract class L2Character extends L2Object {
      */
     public final int getTargetId() {
         /*
-         * if(getTarget() != null) // _target = null; срабатывал return
+         * if(getTarget() != null) // _target = null; ���������� return
          * getTarget().getObjectId(); return -1;
          */
         L2Object target = getTarget();
@@ -4745,7 +4757,7 @@ public abstract class L2Character extends L2Object {
          * z:"+z); }
          */
 
-        // проверка на двери (Line2D-/-Line2D) тут, что-бы не вызывать далее кучу математических просчетов
+        // �������� �� ����� (Line2D-/-Line2D) ���, ���-�� �� �������� ����� ���� �������������� ���������
         if (DoorTable.getInstance().checkIfDoorsBetween(this, curX, curY, curZ, x, y, z)) {
             getAI().setIntention(CtrlIntention.AI_INTENTION_IDLE);
             return;
@@ -4922,7 +4934,7 @@ public abstract class L2Character extends L2Object {
                          * this).sendAdmResultMessage("##moveToLocation#2#>>#x:"+x+"
                          * y:"+y+" z:"+z); }
                          */
-                        // финальная проверка на двери
+                        // ��������� �������� �� �����
                         if (DoorTable.getInstance().checkIfDoorsBetween(this, curX, curY, curZ, x, y, z)) {
                             m.geoPath.clear();
                             m.geoPath = null;
@@ -5557,10 +5569,18 @@ public abstract class L2Character extends L2Object {
 
                     double absorbPercent = getStat().calcStat(Stats.ABSORB_DAMAGE_PERCENT, 0, null, null);
                     if (absorbPercent > 0) {
-                        int absorbDamage = (int) (absorbPercent / 100. * damage);
-                        absorbDamage = Math.min(absorbDamage, (int) (getMaxHp() - getCurrentHp()));// Can't absord more than max hp
-                        if (absorbDamage > 0) {
-                            setCurrentHp(getCurrentHp() + absorbDamage);
+                        if((target.isL2Monster() || target.isRaid() || target.isGrandRaid()) && Config.NPCS_DOWN_ABSORB.containsKey(target.getNpcId())) {
+                            int absorbDamage = (int) (absorbPercent / 100. * damage);
+                            absorbDamage = Math.min(absorbDamage, (int) (getMaxHp() - getCurrentHp()));// Can't absord more than max hp
+                            if(absorbDamage > 0) {
+                                setCurrentHp(getCurrentHp() + Math.min(absorbDamage, Config.NPCS_DOWN_ABSORB.get(target.getNpcId())));
+                            }
+                        } else {
+                            int absorbDamage = (int) (absorbPercent / 100. * damage);
+                            absorbDamage = Math.min(absorbDamage, (int) (getMaxHp() - getCurrentHp()));// Can't absord more than max hp
+                            if(absorbDamage > 0) {
+                                setCurrentHp(getCurrentHp() + absorbDamage);
+                            }
                         }
                     }
                 }
@@ -5908,7 +5928,7 @@ public abstract class L2Character extends L2Object {
 
         return _skills.values().toArray(new L2Skill[_skills.values().size()]);
     }
-    // перезарядка шанс скиллов 60 секунд
+    // ����������� ���� ������� 60 ������
     private long _lastTrigger = 0;
 
     public void setLastTrigger() {
@@ -6616,7 +6636,7 @@ public abstract class L2Character extends L2Object {
                     // Set some values inside target's instance for later use
                     L2Character target = (L2Character) trg;
                     if (target.isInvul() && skill.isSkillTypeOffensive()) {
-                        sendMessage("Цель не воспреимчива к повреждениям");
+                        sendMessage("���� �� ������������ � ������������");
                         continue;
                     }
 
@@ -7342,7 +7362,7 @@ public abstract class L2Character extends L2Object {
     public boolean isVis() {
         return _vis;
     }
-    // зарядки
+    // �������
     private int _numCharges = 0;
 
     public void increaseCharges() {
@@ -7372,23 +7392,23 @@ public abstract class L2Character extends L2Object {
         return _numCharges;
     }
 
-    // дебафф инвул
+    // ������ �����
     public boolean isDebuffImmun() {
         return (isRaid() || isInvul() || getFirstEffect(1411) != null || isCursedWeaponEquiped());
     }
 
     public boolean isDebuffImmun(L2Skill skill) {
-        // уже висит
+        // ��� �����
         if (getFirstEffect(skill.getId()) != null) {
             return true;
         }
 
-        // висит Mystic Immunity
+        // ����� Mystic Immunity
         if (getFirstEffect(1411) != null && skill.hasEffects()) {
             return true;
         }
 
-        // защищенные от дебаффов
+        // ���������� �� ��������
         if (skill.isDebuff() && isDebuffImmun()) {
             return true;
         }
@@ -7396,7 +7416,7 @@ public abstract class L2Character extends L2Object {
         return false;
     }
 
-    //статы чара
+    //����� ����
     public double calcMENModifier() {
         return Formulas.calcMENModifier(this);
     }
@@ -7414,9 +7434,9 @@ public abstract class L2Character extends L2Object {
     }
 
     /**
-     * уменьшаем затраты на сравнение классов instanceof
+     * ��������� ������� �� ��������� ������� instanceof
      */
-    //враг для моба?
+    //���� ��� ����?
     public boolean isEnemyForMob(L2Attackable mob) {
         return false;
     }
@@ -7477,7 +7497,7 @@ public abstract class L2Character extends L2Object {
         setCurrentHpMp(getMaxHp(), getMaxMp());
         setCurrentCp(getMaxCp());
 
-        //sendMessage("Полное восстановление");
+        //sendMessage("������ ��������������");
         sendUserPacket(Static.FULL_RESTORE);
     }
     private long _lastStop = 0;
@@ -7497,7 +7517,7 @@ public abstract class L2Character extends L2Object {
         broadcastPacket(new MagicSkillUser(this, this, 2243, 1, 1000, 0));
         stopAllEffects();
 
-        //sendMessage("Снятие баффов");
+        //sendMessage("������ ������");
         sendUserPacket(Static.BUFFS_CANCEL);
     }
     private long _lastRebuff = 0;
@@ -7538,7 +7558,7 @@ public abstract class L2Character extends L2Object {
             //stopSkillEffects(e.getSkill().getId());
             _st.getInfo(e.getSkill().getId(), e.getSkill().getLevel()).getEffects(this, this);
         }
-        //sendMessage("Обновление баффов");
+        //sendMessage("���������� ������");
         sendUserPacket(Static.BUFFS_UPDATE);
     }
     private long _fullRebuff = 0;
@@ -7584,7 +7604,7 @@ public abstract class L2Character extends L2Object {
     }
 
     public void sNotReady() {
-        sendUserPacket(Static.PLEASE_WAIT);//sendMessage("Еще не готово. Раз в 5 секунд.");
+        sendUserPacket(Static.PLEASE_WAIT);//sendMessage("��� �� ������. ��� � 5 ������.");
         sendActionFailed();
     }
 
@@ -7605,7 +7625,7 @@ public abstract class L2Character extends L2Object {
     }
 
     /**
-     **	уменьшаем затраты для каста ((L2PcInstance) L2Character.cha)
+     **	��������� ������� ��� ����� ((L2PcInstance) L2Character.cha)
      *
      */
     public L2Armor getActiveChestArmorItem() {
@@ -7898,7 +7918,7 @@ public abstract class L2Character extends L2Object {
         return 0;
     }
 
-    public boolean isOverlord() // как же вы заебали, у овера активейтрейт 40, какой нахуй шанс выше может быть?
+    public boolean isOverlord() // ��� �� �� �������, � ����� ������������ 40, ����� ����� ���� ���� ����� ����?
     {
         return false;
     }

@@ -20,12 +20,7 @@ package ru.agecold.gameserver.network.clientpackets;
 
 import java.util.logging.Logger;
 
-import ru.agecold.Config;
-import ru.agecold.gameserver.LoginServerThread;
-import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
-import ru.agecold.gameserver.network.L2GameClient.GameClientState;
-import ru.agecold.gameserver.network.serverpackets.ActionFailed;
-import ru.agecold.gameserver.network.serverpackets.CharSelected;
+import ru.agecold.gameserver.network.L2GameClient;
 
 /**
  * This class ...
@@ -57,6 +52,9 @@ public class CharacterSelected extends L2GameClientPacket {
 
     @Override
     protected void runImpl() {
+        L2GameClient client = getClient();
+        if(client == null)
+            return;
         // if there is a playback.dat file in the current directory, it will
         // be sent to the client instead of any regular packets
         // to make this work, the first packet in the playback.dat has to
@@ -67,55 +65,7 @@ public class CharacterSelected extends L2GameClientPacket {
         // we should always be abble to acquire the lock
         // but if we cant lock then nothing should be done (ie repeated packet)
         // System.out.println("###1#");
-        if (getClient().getActiveCharLock().tryLock()) {
-            try {
-                //System.out.println("###2#");
-
-                LoginServerThread.checkLogoutRoom(getClient().getAccountName(), getClient());
-                // should always be null
-                // but if not then this is repeated packet and nothing should be done here
-                if (getClient().getActiveChar() == null) {
-                    //System.out.println("###3#");
-                    // The L2PcInstance must be created here, so that it can be attached to the L2GameClient
-                    //if (Config.DEBUG)
-                    ///{
-                    //	_log.fine("selected slot:" + _charSlot);
-                    //}
-
-                    //load up character from disk
-                    L2PcInstance cha = getClient().loadCharFromDisk(_charSlot);
-                    if (cha == null) {
-                        _log.severe("Character could not be loaded (slot:" + _charSlot + ")");
-                        sendPacket(new ActionFailed());
-                        return;
-                    }
-                    //System.out.println("###4#");
-                    if (cha.getAccessLevel() < 0) {
-                        cha.closeNetConnection();
-                        return;
-                    }
-
-                    //System.out.println("###5#");
-                    cha.setClient(getClient());
-                    //System.out.println("###6#");
-                    getClient().setActiveChar(cha);
-                    //System.out.println("###7#");
-
-                    //cha.setEnterWorld();
-                    /*if (!Config.CATS_GUARD) {
-                     getClient().sendGameGuardRequest();
-                     }*/
-                    //System.out.println("###8#");
-                    getClient().setState(GameClientState.IN_GAME);
-                    //System.out.println("###9#");
-                    //CharSelected cs = new CharSelected(cha, getClient().getSessionId().playOkID1);
-                    sendPacket(new CharSelected(cha, getClient().getSessionId().playOkID1));
-                    // System.out.println("###10#");
-                }
-            } finally {
-                getClient().getActiveCharLock().unlock();
-            }
-        }
+        client.playerSelected(_charSlot);
         //System.out.println("###99#");
     }
 }

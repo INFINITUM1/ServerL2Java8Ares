@@ -17,12 +17,11 @@
  */
 package ru.agecold.gameserver.network;
 
-import com.lameguard.session.LameClientV195;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
@@ -44,21 +43,17 @@ import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
 import ru.agecold.gameserver.model.entity.L2Event;
 import ru.agecold.gameserver.model.entity.olympiad.Olympiad;
 import ru.agecold.gameserver.network.gameserverpackets.SetPhoneNumber;
-import ru.agecold.gameserver.network.serverpackets.GameGuardQuery;
-import ru.agecold.gameserver.network.serverpackets.GameGuardQueryEx;
+import ru.agecold.gameserver.network.serverpackets.ActionFailed;
+import ru.agecold.gameserver.network.serverpackets.CharSelected;
 import ru.agecold.gameserver.network.serverpackets.L2GameServerPacket;
 import ru.agecold.gameserver.network.serverpackets.NetPing;
 import ru.agecold.gameserver.network.serverpackets.ServerClose;
 import ru.agecold.gameserver.network.serverpackets.ServerCloseSocket;
 import ru.agecold.gameserver.network.serverpackets.UserInfo;
 import ru.agecold.gameserver.taskmanager.LazyPrecisionTaskManager;
-import ru.agecold.gameserver.util.protection.GameGuard;
 import ru.agecold.mysql.Close;
 import ru.agecold.mysql.Connect;
 import ru.agecold.util.EventData;
-import ru.agecold.util.Log;
-import ru.agecold.util.TimeLogger;
-import ru.agecold.gameserver.util.protection.catsguard.CatsGuard;
 import org.mmocore.network.nio.impl.MMOClient;
 import org.mmocore.network.nio.impl.MMOConnection;
 
@@ -67,8 +62,7 @@ import org.mmocore.network.nio.impl.MMOConnection;
  *
  * @author KenM
  */
-public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> implements LameClientV195 {
-
+public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> {
     protected static final Logger _log = Logger.getLogger(L2GameClient.class.getName());
 
     /**
@@ -88,7 +82,6 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
     public SessionKey sessionId;
     public L2PcInstance activeChar;
     private ReentrantLock _activeCharLock = new ReentrantLock();
-    private boolean _isAuthedGG = false;
     private long _connectionStartTime;
     private List<Integer> _charSlotMapping = new FastList<Integer>();
     // Task
@@ -97,7 +90,7 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
              */ ScheduledFuture<?> _autoSaveInDB;
     protected ScheduledFuture<?> _cleanupTask = null;
     // Crypt
-    public GameCrypt crypt;
+    public GameCrypt gameCrypt = null;
     // Flood protection
     private int _upTryes = 0;
     private long _upLastConnection = 0;
@@ -112,9 +105,8 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
     public L2GameClient(MMOConnection<L2GameClient> con) {
         super(con);
         state = GameClientState.CONNECTED;
-        _isAuthedGG = true;
         _connectionStartTime = System.currentTimeMillis();
-        crypt = new GameCrypt();
+        gameCrypt = new GameCrypt();
 
         _autoSaveInDB = ThreadPoolManager.getInstance().scheduleGeneralAtFixedRate(new AutoSaveTask(), 300000L, 900000L);
         _ip = con.getSocket().getInetAddress().getHostAddress();
@@ -127,7 +119,7 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
 
     public byte[] enableCrypt() {
         byte[] key = BlowFishKeygen.getRandomKey();
-        crypt.setKey(key);
+        gameCrypt.setKey(key);
         return key;
     }
 
@@ -147,7 +139,7 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
     public boolean decrypt(ByteBuffer buf, int size) {
         /*crypt.decrypt(buf.array(), buf.position(), size);
         return true;*/
-        return crypt.decrypt(buf.array(), buf.position(), size);
+        return gameCrypt.decrypt(buf.array(), buf.position(), size);
     }
 
     @Override
@@ -155,7 +147,7 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
         /*crypt.encrypt(buf.array(), buf.position(), size);
         buf.position(buf.position() + size);
         return true;*/
-        crypt.encrypt(buf.array(), buf.position(), size);
+        gameCrypt.encrypt(buf.array(), buf.position(), size);
         buf.position(buf.position() + size);
         return true;
     }
@@ -166,13 +158,6 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
 
     public void setActiveChar(L2PcInstance pActiveChar) {
         activeChar = pActiveChar;
-        if (Config.CATS_GUARD) {
-            if ((_reader != null) && (activeChar != null)) {
-                _reader.checkChar(activeChar);
-                L2World.getInstance().storeObject(getActiveChar());
-            }
-            return;
-        }
         if (activeChar != null) {
             L2World.getInstance().storeObject(getActiveChar());
         }
@@ -182,17 +167,8 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
         return _activeCharLock;
     }
 
-    public void setGameGuardOk(boolean val) {
-        _isAuthedGG = val;
-    }
-
     public void setAccountName(String pAccountName) {
         accountName = pAccountName;
-        if (Config.CATS_GUARD) {
-            if (_reader == null) {
-                CatsGuard.getInstance().initSession(this);
-            }
-        }
     }
 
     public String getAccountName() {
@@ -570,10 +546,79 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
         }
 
         state = GameClientState.DISCONNECTED;
-        closeSession();
-        if (Config.CATS_GUARD) {
-            if (_reader != null) {
-                CatsGuard.getInstance().doneSession(this);
+    }
+
+    public void playerSelected(int charSlot)
+    {
+        //int objId = getObjectIdForSlot(charSlot);
+        //if(objId <= 0)
+        //{
+        //    sendPacket(new ActionFailed());
+        //    return;
+        //}
+
+        if (getActiveCharLock().tryLock()) {
+            try {
+                //System.out.println("###2#");
+                LoginServerThread.checkLogoutRoom(getAccountName(), this);
+                // should always be null
+                // but if not then this is repeated packet and nothing should be done here
+                if(getActiveChar() != null)
+                {
+                    sendPacket(new ActionFailed());
+                    return;
+                }
+                //if(!isAuthed())
+                //{
+                //    _log.info("Not authed client from IP: " + getIpAddr() + " Acc: " + getAccountName());
+                //    close(Static.ServerClose);
+                //    return;
+                //}
+                //if(AutoBan.isBanned(objId))
+                //{
+                //    _log.info("Try enter banned char[" + objId + "] from IP: " + getIpAddr() + " Acc: " + getAccountName());
+                //    close(Static.ServerClose);
+                //    return;
+                //}
+                //System.out.println("###3#");
+                // The L2PcInstance must be created here, so that it can be attached to the L2GameClient
+                //if (Config.DEBUG)
+                ///{
+                //	_log.fine("selected slot:" + _charSlot);
+                //}
+
+                //load up character from disk
+                L2PcInstance cha = loadCharFromDisk(charSlot);
+                if (cha == null) {
+                    _log.severe("Character could not be loaded (slot:" + charSlot + ")");
+                    sendPacket(new ActionFailed());
+                    return;
+                }
+                //System.out.println("###4#");
+                if (cha.getAccessLevel() < 0) {
+                    cha.closeNetConnection();
+                    return;
+                }
+
+                //System.out.println("###5#");
+                cha.setClient(this);
+                //System.out.println("###6#");
+                setActiveChar(cha);
+                //System.out.println("###7#");
+
+                //cha.setEnterWorld();
+                /*if (!Config.CATS_GUARD) {
+                 sendGameGuardRequest();
+                 }*/
+                cha.storeHWID(_hwid);
+                //System.out.println("###8#");
+                setState(GameClientState.IN_GAME);
+                //System.out.println("###9#");
+                //CharSelected cs = new CharSelected(cha, getSessionId().playOkID1);
+                sendPacket(new CharSelected(cha, getSessionId().playOkID1));
+                // System.out.println("###10#");
+            } finally {
+                getActiveCharLock().unlock();
             }
         }
     }
@@ -603,7 +648,7 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
                 case AUTHED:
                     return "[Account: " + getAccountName() + " - IP: " + _ip + "]";
                 case IN_GAME:
-                    return "[Character: " + (getActiveChar() == null ? "disconnected" : getActiveChar().getName()) + " - Account: " + getAccountName() + " - IP: " + _ip + "]";
+                    return "[Character: " + (getActiveChar() == null ? "disconnected" : getActiveChar().getName()) + " - Account: " + getAccountName() + " - IP: " + _ip + " - HWID: " + _hwid + "]";
                 case DISCONNECTED:
                     return "[Disconnected]";
                 default:
@@ -689,7 +734,7 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
                 return;
             } else {
                 player.incAccKickCount();
-                player.sendMessage("Кто-то пытается зайти за вашего персонажа!");
+                player.sendMessage("пїЅпїЅпїЅ-пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ!");
                 //LoginController.getInstance().sendPacket(new PlayerLogout(player.getAccountName()));
             }
 
@@ -710,33 +755,18 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
         closeNow();
         LoginServerThread.getInstance().sendLogout(account);
     }
-    // ламгварддд
+
+    // пїЅпїЅпїЅпїЅпїЅпїЅ HWID: 867157d6890adda666c4fe110df01fda
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     private String _hwid = "none";
     private String _myhwid = "none";
-    private boolean _protected;
-    private int _patchVersion;
-    private int _instCount;
 
-    @Override
     public void setHWID(String hwid) {
         _hwid = hwid;
     }
 
-    @Override
     public String getHWID() {
         return _hwid;
-    }
-
-    public boolean acceptHWID(String hwid, boolean pw) {
-        if (hwid.equalsIgnoreCase("none") || pw) {
-            return true;
-        }
-
-        if (_hwid.equalsIgnoreCase(hwid)) {
-            _myhwid = hwid;
-            return true;
-        }
-        return false;
     }
 
     public String getMyHWID() {
@@ -747,99 +777,24 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
         _myhwid = hwid;
     }
 
-    @Override
-    public void setProtected(boolean f) {
-        _protected = f;
+    //пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+    public void saveHWID(boolean f) {
+        LoginServerThread.getInstance().setHwid(getAccountName(), (f ? getHWID() : ""));
+        setMyHWID(f ? getHWID() : "none");
     }
 
-    @Override
-    public boolean isProtected() {
-        return _protected;
-    }
+    public boolean acceptHWID(String hwid) {
+        if (hwid.equalsIgnoreCase("none")) {
+            return true;
+        }
 
-    @Override
-    public void setInstanceCount(int instCount) {
-        _instCount = instCount;
-    }
-
-    @Override
-    public int getInstanceCount() {
-        return _instCount;
-    }
-
-    @Override
-    public void setPatchVersion(int patchVersion) {
-        _patchVersion = patchVersion;
-    }
-
-    @Override
-    public int getPatchVersion() {
-        return _patchVersion;
-    }
-
-    public boolean isAuthedGG() {
-        return _isAuthedGG;
-    }
-
-    public boolean checkCSG() {
+        if (_hwid.equalsIgnoreCase(hwid)) {
+            _myhwid = hwid;
+            return true;
+        }
         return false;
     }
 
-    /**
-     * Game Guard
-     */
-    public boolean checkGameGuardReply(int[] reply) {
-        return GameGuard.getInstance().checkGameGuardReply(this, reply);
-    }
-
-    public void startSession() {
-        /*if (Config.CATS_GUARD) {
-         LoginServerThread.getInstance().setHwid(getAccountName(), getHWID());
-         return;
-         }*/
-        if (!Config.CATS_GUARD) {
-            GameGuard.getInstance().startSession(this);
-        }
-    }
-
-    public void closeSession() {
-        if (!Config.CATS_GUARD) {
-            GameGuard.getInstance().closeSession(this);
-        }
-    }
-
-    public void sendGameGuardRequest() {
-        if (Config.GAMEGUARD_ENABLED) {
-            sendPacket(new GameGuardQueryEx());
-        } else {
-            sendPacket(new GameGuardQuery());
-        }
-    }
-
-    public void punishClient() {
-        _log.warning(TimeLogger.getTime() + "Game Guard [WARNING]" + toString() + " kicked.");
-        Log.add(TimeLogger.getTime() + toString(), "game_guard");
-        switch (Config.GAMEGUARD_PUNISH) {
-            case 1: // kick
-                close();
-                //close(new LeaveWorld());
-                break;
-            case 2: // jail
-                getActiveChar().setInJail(true);
-                break;
-            case 3: // ban account
-                LoginServerThread.getInstance().sendAccessLevel(getAccountName(), -1);
-                close();
-                //close(new LeaveWorld());
-                break;
-            case 4: // ban hwid
-                //close(new LeaveWorld());
-                close();
-                break;
-        }
-        closeSession();
-    }
-    //
     private boolean _hasEmail = false;
 
     public void setHasEmail(boolean hasEmail) {
@@ -849,17 +804,9 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
     public boolean hasEmail() {
         return _hasEmail;
     }
-    public IExReader _reader;
 
     public String getHWid() {
         return this._hwid;
-    }
-
-    public static interface IExReader {
-
-        public int read(ByteBuffer buf, int opcode);
-
-        public void checkChar(L2PcInstance cha);
     }
 
     public String getFingerPrints() {
@@ -947,5 +894,53 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> i
         catch (IOException ex) {
             Logger.getLogger(L2GameClient.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    private int revision = 0;
+
+    public int getRevision()
+    {
+        return revision;
+    }
+
+    public void setRevision(final int revision)
+    {
+        this.revision = revision;
+    }
+
+    public boolean isHWIDBanned()
+    {
+        boolean result = false;
+        Connect con = null;
+        PreparedStatement statement = null;
+        ResultSet rs = null;
+        try
+        {
+            con = L2DatabaseFactory.get();
+            statement = con.prepareStatement("SELECT * FROM hwid_bans WHERE HWID=? LIMIT 1");
+            statement.setString(1, _hwid);
+            rs = statement.executeQuery();
+            if(rs.next())
+            {
+                long time = rs.getLong("end_date");
+                if(time <= 0 || time > System.currentTimeMillis())
+                    result = true;
+                else
+                {
+                    Close.SR(statement, rs);
+                    statement = con.prepareStatement("DELETE FROM hwid_bans WHERE HWID=?");
+                    statement.setString(1, _hwid);
+                    statement.execute();
+                }
+            }
+
+        }
+        catch(Exception E)
+        {}
+        finally
+        {
+            Close.CSR(con, statement, rs);
+        }
+        return result;
     }
 }

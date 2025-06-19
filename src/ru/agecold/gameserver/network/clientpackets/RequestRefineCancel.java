@@ -56,7 +56,7 @@ public final class RequestRefineCancel extends L2GameClientPacket {
             return;
         }
 
-        if (!targetItem.canBeEnchanted()) {
+        if (!targetItem.canBeAugmented()) {
             player.sendPacket(new ExVariationCancelResult(0));
             return;
         }

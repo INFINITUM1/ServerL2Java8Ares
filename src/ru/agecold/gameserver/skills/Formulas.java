@@ -1811,7 +1811,7 @@ public final class Formulas {
     }
 
     public static double calcMENModifier(L2Character target) {
-        double multiplier = 2 - Math.sqrt(MENbonus[target.getMEN()]);
+        double multiplier = 2 - Math.sqrt(MENbonus[Math.min(target.getMEN(), MAX_STAT_VALUE - 1)]);
         return Math.max(0, multiplier);
     }
 
@@ -1906,7 +1906,7 @@ public final class Formulas {
         }
 
         double damage = (Math.sqrt(mAtk) * skill.getPower(attacker) * (target.getMaxMp() / 97)) / target.getMDef(attacker, skill);
-        //damage *= calcSkillVulnerability(target, skill);		
+        //damage *= calcSkillVulnerability(target, skill);
         damage *= calcSkillVulnerability(target, skill);
         return damage;
     }

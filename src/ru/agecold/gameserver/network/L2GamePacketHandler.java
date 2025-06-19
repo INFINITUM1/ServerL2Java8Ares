@@ -62,15 +62,7 @@ public final class L2GamePacketHandler implements IPacketHandler<L2GameClient>, 
         }
 
         int opcode = 0;
-        if (Config.CATS_GUARD) {
-            if (client._reader != null) {
-                opcode = client._reader.read(buf, 0);
-            } else {
-                opcode = buf.get() & 0xFF;
-            }
-        } else {
-            opcode = buf.get() & 0xFF;
-        }
+        opcode = buf.get() & 0xFF;
 
         L2GameClientPacket msg = null;
 
@@ -823,7 +815,7 @@ public final class L2GamePacketHandler implements IPacketHandler<L2GameClient>, 
                                     break;
                             }
                             break;
-                        case 0xf2: //длинный флуд в гс
+                        case 0xf2: //������� ���� � ��
                         case 0x39:
                         case 0x13:
                         case 0x10:

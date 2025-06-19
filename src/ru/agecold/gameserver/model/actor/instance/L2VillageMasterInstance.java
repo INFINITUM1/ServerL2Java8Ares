@@ -78,97 +78,66 @@ public class L2VillageMasterInstance extends L2FolkInstance {
             return;
         }
 
-        String[] commandStr = command.split(" ");
-        String actualCommand = commandStr[0]; // Get actual command
-
-        String cmdParams = "";
-        String cmdParams2 = "";
-
-        if (commandStr.length >= 2) {
-            cmdParams = commandStr[1];
-        }
-        if (commandStr.length >= 3) {
-            cmdParams2 = commandStr[2];
-        }
-
-        if (actualCommand.equalsIgnoreCase("create_clan")) {
-            if (cmdParams.equals("")) {
-                return;
-            }
-
-            ClanTable.getInstance().createClan(player, cmdParams);
-        } else if (actualCommand.equalsIgnoreCase("create_academy")) {
-            if (cmdParams.equals("")) {
-                return;
-            }
-
+        if(command.startsWith("create_clan") && command.length() > 12) {
+            String val = command.substring(12);
+            ClanTable.getInstance().createClan(player, val);
+        } else if(command.startsWith("create_academy") && command.length() > 15) {
             if (Config.CLAN_ACADEMY_ENABLE) {
                 player.sendMessage("Отключено.");
                 return;
             }
+            String sub = command.substring(15, command.length());
 
-            createSubPledge(player, cmdParams, null, L2Clan.SUBUNIT_ACADEMY, 5);
-        } else if (actualCommand.equalsIgnoreCase("create_royal")) {
-            if (cmdParams.equals("")) {
-                return;
-            }
-
+            createSubPledge(player, sub, null, L2Clan.SUBUNIT_ACADEMY, 5);
+        } else if (command.startsWith("create_royal") && command.length() > 15) {
             if (Config.CLAN_ROYAL_ENABLE) {
                 player.sendMessage("Отключено.");
                 return;
             }
-
-            createSubPledge(player, cmdParams, cmdParams2, L2Clan.SUBUNIT_ROYAL1, 6);
-        } else if (actualCommand.equalsIgnoreCase("create_knight")) {
-            if (cmdParams.equals("")) {
-                return;
-            }
-
+            String[] sub = command.substring(13, command.length()).split(" ", 2);
+            if(sub.length == 2)
+                createSubPledge(player, sub[1], sub[0], L2Clan.SUBUNIT_ROYAL1, 6);
+        } else if (command.startsWith("create_knight") && command.length() > 16) {
             if (Config.CLAN_KNIGHT_ENABLE) {
                 player.sendMessage("Отключено.");
                 return;
             }
 
-            createSubPledge(player, cmdParams, cmdParams2, L2Clan.SUBUNIT_KNIGHT1, 7);
-        } else if (actualCommand.equalsIgnoreCase("assign_subpl_leader")) {
-            if (cmdParams.equals("")) {
-                return;
-            }
-
-            assignSubPledgeLeader(player, cmdParams, cmdParams2);
-        } else if (actualCommand.equalsIgnoreCase("create_ally")) {
-            if (cmdParams.equals("")) {
-                return;
-            }
-
+            String[] sub = command.substring(14, command.length()).split(" ", 2);
+            if(sub.length == 2)
+                createSubPledge(player, sub[1], sub[0], L2Clan.SUBUNIT_KNIGHT1, 7);
+        } else if (command.startsWith("assign_subpl_leader") && command.length() > 22) {
+            String[] sub = command.substring(20, command.length()).split(" ", 2);
+            if(sub.length == 2)
+                assignSubPledgeLeader(player, sub[1], sub[0]);
+        } else if (command.startsWith("create_ally") && command.length() > 12) {
             if (!player.isClanLeader()) {
                 player.sendPacket(Static.ONLY_CLAN_LEADER_CREATE_ALLIANCE);
                 return;
             }
-            player.getClan().createAlly(player, cmdParams);
-        } else if (actualCommand.equalsIgnoreCase("dissolve_ally")) {
+            String val = command.substring(12);
+
+            player.getClan().createAlly(player, val);
+        } else if(command.startsWith("dissolve_ally")) {
             if (!player.isClanLeader()) {
                 player.sendPacket(Static.FEATURE_ONLY_FOR_ALLIANCE_LEADER);
                 return;
             }
             player.getClan().dissolveAlly(player);
-        } else if (actualCommand.equalsIgnoreCase("dissolve_clan")) {
+        } else if (command.startsWith("dissolve_clan")) {
             dissolveClan(player, player.getClanId());
-        } else if (actualCommand.equalsIgnoreCase("change_clan_leader")) {
-            if (cmdParams.equals("")) {
-                return;
-            }
-
-            changeClanLeader(player, cmdParams);
-        } else if (actualCommand.equalsIgnoreCase("recover_clan")) {
+        } else if (command.startsWith("change_clan_leader")) {
+            String target = command.substring(19);
+            changeClanLeader(player, target);
+        } else if (command.startsWith("recover_clan")) {
             recoverClan(player, player.getClanId());
-        } else if (actualCommand.equalsIgnoreCase("increase_clan_level")) {
+        } else if (command.startsWith("increase_clan_level")) {
             if (!player.isClanLeader()) {
                 player.sendPacket(Static.YOU_ARE_NOT_AUTHORIZED_TO_DO_THAT);
                 return;
             }
             player.getClan().levelUpClan(player);
-        } else if (actualCommand.equalsIgnoreCase("learn_clan_skills")) {
+        } else if (command.startsWith("learn_clan_skills")) {
             showPledgeSkillList(player);
         } else if (command.startsWith("Subclass")) {
             int cmdChoice = Integer.parseInt(command.substring(9, 10).trim());
@@ -687,12 +656,34 @@ public class L2VillageMasterInstance extends L2FolkInstance {
          */
         Set<PlayerClass> availSubs = null;
         if (Config.ALT_ANY_SUBCLASS || (Config.PREMIUM_ANY_SUBCLASS && player.isPremium())) {
-            availSubs = currClass.getAllSubclasses();
+            availSubs = currClass.getAllSubclasses(Config.PREMIUM_ANY_SUBCLASS && player.isPremium());
+            if(availSubs != null && !availSubs.isEmpty())
+            {
+                for(PlayerClass availSub : availSubs)
+                {
+                    for(Iterator<SubClass> subList = iterSubClasses(player); subList.hasNext(); )
+                    {
+                        SubClass prevSubClass = subList.next();
+                        int subClassId = prevSubClass.getClassId();
+                        if(subClassId >= 88)
+                        {
+                            subClassId = ClassId.values()[subClassId].getParent().getId();
+                        }
+
+                        if(availSub.ordinal() == subClassId || availSub.ordinal() == charClassId)
+                        {
+                            availSubs.remove(PlayerClass.values()[availSub.ordinal()]);
+                        }
+                    }
+                }
+                availSubs.remove(currClass);
+            }
         } else {
             final PlayerRace npcRace = getVillageMasterRace();
             final ClassType npcTeachType = getVillageMasterTeachType();
             availSubs = currClass.getAvailableSubclasses(player);
-            if (availSubs != null) {
+            if(availSubs != null && !availSubs.isEmpty())
+            {
                 for (PlayerClass availSub : availSubs) {
                     for (Iterator<SubClass> subList = iterSubClasses(player); subList.hasNext();) {
                         SubClass prevSubClass = subList.next();
@@ -724,6 +715,7 @@ public class L2VillageMasterInstance extends L2FolkInstance {
                         }
                     }
                 }
+                availSubs.remove(currClass);
             }
         }
         return availSubs;

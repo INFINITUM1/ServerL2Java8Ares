@@ -38,6 +38,7 @@ public abstract class BaseBBSManager {
         if (html == null) {
             return;
         }
+        pl.getBypassStorage().parseHtml(html, true);
         if (html.length() < 4090) {
             pl.sendPacket(new ShowBoard(html, "101"));
             pl.sendPacket(new ShowBoard(null, "102"));

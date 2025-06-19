@@ -4,6 +4,7 @@ package ru.agecold;
 import java.io.*;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -99,7 +100,6 @@ public final class Config {
     public static final String CHAT_FILTER_FILE = "./config/chatfilter.txt";
     public static final String GEO_FILE = "./config/geodata.cfg";
     public static final String FAKE_FILE = "./config/fakeplayers.cfg";
-    public static final String GAME_GUARD_FILE = "./config/protection.cfg";
     public static boolean DEBUG;
     /**
      * Enable/disable assertions
@@ -231,6 +231,7 @@ public final class Config {
      * Character name template
      */
     public static String CNAME_TEMPLATE;
+    public static String DON_CNAME_TEMPLATE;
     /**
      * Pet name template
      */
@@ -280,7 +281,7 @@ public final class Config {
      * Alternative game weight limit multiplier - default 1
      */
     public static double ALT_WEIGHT_LIMIT;
-    // умножение маг крита
+    // ��������� ��� �����
     public static double MAGIC_CRIT_EXP;
     public static double MAGIC_CRIT_EXP_OLY;
     public static double MAGIC_DAM_EXP;
@@ -443,33 +444,35 @@ public final class Config {
      * Number of days before creating a new alliance when dissolved an alliance
      */
     public static int ALT_CREATE_ALLY_DAYS_WHEN_DISSOLVED;
-    // умножение репы
+    // ��������� ����
     public static float ALT_CLAN_REP_MUL;
-    // создание клана
+    // �������� �����
     public static int ALT_CLAN_CREATE_LEVEL;
-    // кланрепа за фраг
+    // �������� �� ����
     public static int ALT_CLAN_REP_WAR;
+    public static int ALT_CLAN_REP_HERO;
 	public static boolean CLAN_REP_KILL_NOTICE;
 	public static boolean CLAN_REP_KILL_UPDATE;
+	public static boolean UPDATE_CRP_AFTER_SET_FLAG;
     /**
      * Alternative gaming - all new characters always are newbies.
      */
     public static boolean ALT_GAME_NEW_CHAR_ALWAYS_IS_NEWBIE;
     /**
-     * Alternative gaming - давать ноблесс при старте?.
+     * Alternative gaming - ������ ������� ��� ������?.
      */
     public static boolean ALT_GAME_NEW_CHAR_ALWAYS_IS_NOBLE;
     /**
-     * уровень при старте
+     * ������� ��� ������
      */
     public static int ALT_START_LEVEL;
     /**
-     * микрофон *
+     * �������� *
      */
     public static boolean ALLOW_RUPOR;
     public static int RUPOR_ID;
     /**
-     * палево онлайна
+     * ������ �������
      */
     public static boolean SONLINE_ANNOUNE;
     public static int SONLINE_ANNOUNCE_DELAY;
@@ -483,15 +486,15 @@ public final class Config {
     public static int AUTO_ANNOUNCE_DELAY;
     public static boolean AUTO_ANNOUNCE_ALLOW;
     /**
-     * Alternative gaming - разрешить пушки с аугментацией на олимпе?.
+     * Alternative gaming - ��������� ����� � ������������ �� ������?.
      */
     public static boolean ALT_ALLOW_AUGMENT_ON_OLYMP;
     /**
-     * Alternative gaming - разрешить оффтрейд?
+     * Alternative gaming - ��������� ��������?
      */
     public static boolean ALT_ALLOW_OFFLINE_TRADE;
     /**
-     * Alternative gaming - разрешить аукцион?
+     * Alternative gaming - ��������� �������?
      */
     public static boolean ALT_ALLOW_AUC;
     /**
@@ -610,7 +613,7 @@ public final class Config {
     public static int ALT_OLY_MINCLASS;
     public static int ALT_OLY_MINNONCLASS;
     /**
-     * восстанавливать мп перед боем
+     * ��������������� �� ����� ����
      */
     public static boolean ALT_OLY_MP_REG;
     /**
@@ -670,23 +673,23 @@ public final class Config {
      */
     public static int ALT_LOTTERY_2_AND_1_NUMBER_PRIZE;
     /**
-     * Нужны ли квесты на грандбоссов *
+     * ����� �� ������ �� ����������� *
      */
     public static boolean NOEPIC_QUESTS;
     /**
-     * Автолут на эпик бижу + показывает в чат окружающим кому ушла *
+     * ������� �� ���� ���� + ���������� � ��� ���������� ���� ���� *
      */
     public static boolean ALT_EPIC_JEWERLY;
     /**
-     * Разрешить активный и пассивный аугмент одновременно *
+     * ��������� �������� � ��������� ������� ������������ *
      */
     public static boolean ONE_AUGMENT;
     /**
-     * Окошко взятия профы при лвл-апе *
+     * ������ ������ ����� ��� ���-��� *
      */
     public static boolean JOB_WINDOW;
     /**
-     * бесконечные чулшоты *
+     * ����������� ������� *
      */
     public static boolean USE_SOULSHOTS;
     public static boolean USE_ARROWS;
@@ -920,7 +923,7 @@ public final class Config {
      * Rate for drop adena
      */
     public static float RATE_DROP_ADENA;
-    // умножение выпадающей адены
+    // ��������� ���������� �����
     public static float RATE_DROP_ADENAMUL;
     /**
      * Rate for cost of consumable
@@ -1247,7 +1250,7 @@ public final class Config {
      * Maximal protocol revision
      */
     public static int MAX_PROTOCOL_REVISION;
-    //Для отладки, показываь протоколы которые заходят на сервер?
+    //��� �������, ��������� ��������� ������� ������� �� ������?
     public static boolean SHOW_PROTOCOL_VERSIONS;
     // random animation interval
     /**
@@ -1542,11 +1545,18 @@ public final class Config {
     public static FastList<Location> TVT_EVENT_TEAM_2_COORDINATES = new FastList<Location>();
     public static FastList<Location> TVT_RETURN_COORDINATES = new FastList<Location>();
     public static final List<int[]> TVT_EVENT_REWARDS = new FastList<int[]>();
+    public static final List<int[]> TVT_EVENT_REWARDS_TIE = new FastList<int[]>();
 	public static final List<int[]> TVT_EVENT_REWARDS_PREMIUM = new FastList<int[]>();
     public static int TVT_EVENT_REWARDS_TOP_KILLS;
 	public static int TVT_REWARD_LOOSER;
+	public static int TVT_MIN_KILLS_FOR_REWARDS;
+	public static int TVT_MIN_KILLS_TIE_FOR_REWARDS;
     public static final List<int[]> TVT_EVENT_REWARDS_TOP = new FastList<int[]>();
+    public static final List<int[]> TVT_EVENT_REWARDS_TOP_PREMIUM = new FastList<int[]>();
+    public static int TVT_REWARD_TOP_LOOSER;
 	public static final List<int[]> TVT_EVENT_REWARDS_LOOSER = new FastList<int[]>();
+    public static final List<int[]> TVT_EVENT_REWARDS_LOOSER_TOP = new FastList<int[]>();
+    public static final List<int[]> TVT_EVENT_REWARDS_LOOSER_PREMIUM = new FastList<int[]>();
     public static boolean TVT_EVENT_TARGET_TEAM_MEMBERS_ALLOWED;
     public static boolean TVT_EVENT_POTIONS_ALLOWED;
     public static boolean TVT_EVENT_SUMMON_BY_ITEM_ALLOWED;
@@ -1556,6 +1566,7 @@ public final class Config {
     public static boolean TVT_NO_PASSIVE;
     public static boolean TVT_REWARD_CHECK;
     public static boolean TVT_REWARD_TOP;
+    public static int TVT_REWARD_TOP_COUNT;
     public static int TVT_TELE_PROTECT;
     public static boolean TVT_TEAM_PROTECT;
     public static boolean TVT_NO_DEADS;
@@ -1565,6 +1576,7 @@ public final class Config {
 	public static boolean TVT_EVENT_REWARDS_PREM_ON;
 	public static final List<int[]> TVT_EVENT_REWARDS_PREM = new FastList<int[]>();
 	public static int TVT_CUSTOM_ENCHANT;
+	public static int TVT_EVENT_KILLS_OVERLAY;
 	public static boolean ALT_TVT_BUFFS;
 	public static final FastMap<Integer, Integer> TVT_MAGE_BUFFS = new FastMap<Integer, Integer>().shared("Config.TVT_MAGE_BUFFS");
 	public static final FastMap<Integer, Integer> TVT_FIGHTER_BUFFS = new FastMap<Integer, Integer>().shared("Config.TVT_FIGHTER_BUFFS");
@@ -1588,19 +1600,19 @@ public final class Config {
     public static boolean L2JMOD_WEDDING_BOW;
     // L2WalkerProtection
     public static boolean KICK_L2WALKER;
-    //пвп-зона на епиках
+    //���-���� �� ������
     public static boolean ALLOW_RAID_PVP;
-    //откат цп
+    //����� ��
     public static long CP_REUSE_TIME;
-    // банка мп
+    // ����� ��
     public static long MANA_RESTORE;
-    //антибафф
+    //��������
     public static int ANTIBUFF_SKILLID;
-    //шанс прохождения абил
+    //���� ����������� ����
     public static int BLOW_CHANCE_FRONT;
     public static int BLOW_CHANCE_BEHIND;
     public static int BLOW_CHANCE_SIDE;
-    //умножение дамага абил по типу брони
+    //��������� ������ ���� �� ���� �����
     public static double BLOW_DAMAGE_HEAVY;
     public static double BLOW_DAMAGE_LIGHT;
     public static double BLOW_DAMAGE_ROBE;
@@ -1639,16 +1651,16 @@ public final class Config {
      */
     public static int ENCHANT_CHANCE_JEWELRY_CRYSTAL;
     /**
-     * Переделка шансов на затчоку
+     * ��������� ������ �� �������
      */
-    public static int ENCHANT_CHANCE_NEXT; //переломный момент в шансах заточки
-    public static int ENCHANT_FAILED_NUM; //переломный момент в шансах заточки
-    public static float MAGIC_CHANCE_BEFORE_NEXT; //шанс на заточку магического оружия до ENCHANT_CHANCE_NEXT
-    public static float MAGIC_CHANCE_AFTER_NEXT; //шанс на заточку магического оружия после ENCHANT_CHANCE_NEXT включительно
-    public static float WEAPON_CHANCE_BEFORE_NEXT; //шанс на заточку оружия до ENCHANT_CHANCE_NEXT
-    public static float WEAPON_CHANCE_AFTER_NEXT; //шанс на заточку оружия после ENCHANT_CHANCE_NEXT включительно
-    public static final List<Float> ARMOR_ENCHANT_TABLE = new FastList<Float>(); //таблица шансов на заточку арморов
-    public static final List<Float> FULL_ARMOR_ENCHANT_TABLE = new FastList<Float>(); //таблица шансов на заточку FullBody арморов
+    public static int ENCHANT_CHANCE_NEXT; //���������� ������ � ������ �������
+    public static int ENCHANT_FAILED_NUM; //���������� ������ � ������ �������
+    public static float MAGIC_CHANCE_BEFORE_NEXT; //���� �� ������� ����������� ������ �� ENCHANT_CHANCE_NEXT
+    public static float MAGIC_CHANCE_AFTER_NEXT; //���� �� ������� ����������� ������ ����� ENCHANT_CHANCE_NEXT ������������
+    public static float WEAPON_CHANCE_BEFORE_NEXT; //���� �� ������� ������ �� ENCHANT_CHANCE_NEXT
+    public static float WEAPON_CHANCE_AFTER_NEXT; //���� �� ������� ������ ����� ENCHANT_CHANCE_NEXT ������������
+    public static final List<Float> ARMOR_ENCHANT_TABLE = new FastList<Float>(); //������� ������ �� ������� �������
+    public static final List<Float> FULL_ARMOR_ENCHANT_TABLE = new FastList<Float>(); //������� ������ �� ������� FullBody �������
     /**
      * Chat filter
      */
@@ -2054,7 +2066,7 @@ public final class Config {
     public static boolean ALT_DEV_NO_SPAWNS;
     public static int MASTERACCESS_LEVEL;
     /**
-     * Сервисы
+     * �������
      *
      */
     public static final String SERVICE_FILE = "./config/services.cfg";
@@ -2067,41 +2079,41 @@ public final class Config {
     public static int NALOG_NPS;
     public static String VAL_NAME;
     public static int PAGE_LIMIT;
-    // перенос заточки и аугментации
+    // ������� ������� � �����������
     public static int AUGMENT_COIN;
     public static int ENCHANT_COIN;
     public static String AUGMENT_COIN_NAME;
     public static String ENCHANT_COIN_NAME;
     public static int AUGMENT_PRICE;
     public static int ENCHANT_PRICE;
-    // сервисы кланам
+    // ������� ������
     public static int CLAN_COIN;
     public static String CLAN_COIN_NAME;
     public static int CLAN_POINTS;
     public static int CLAN_POINTS_PRICE;
     public static int CLAN_SKILLS_PRICE;
-    // продажа аугментации
-    public static int AUGSALE_COIN; // ID итема
-    public static int AUGSALE_PRICE; // цена
-    public static String AUGSALE_COIN_NAME; // название итема
+    // ������� �����������
+    public static int AUGSALE_COIN; // ID �����
+    public static int AUGSALE_PRICE; // ����
+    public static String AUGSALE_COIN_NAME; // �������� �����
     public static final FastMap<Integer, Integer> AUGSALE_TABLE = new FastMap<Integer, Integer>().shared("Config.AUGSALE_TABLE");
-    // продажа Skill of Balance
-    public static int SOB_ID; // ID скилла
-    public static int SOB_NPC; // ID нпц для кубика (99997 - фея)
-    public static int SOB_COIN; // ID итема
-    public static int SOB_PRICE_ONE; // цена 2 недели
-    public static int SOB_PRICE_TWO; // цена на месяц
-    public static String SOB_COIN_NAME; // название итема
-    // донейт шоп
+    // ������� Skill of Balance
+    public static int SOB_ID; // ID ������
+    public static int SOB_NPC; // ID ��� ��� ������ (99997 - ���)
+    public static int SOB_COIN; // ID �����
+    public static int SOB_PRICE_ONE; // ���� 2 ������
+    public static int SOB_PRICE_TWO; // ���� �� �����
+    public static String SOB_COIN_NAME; // �������� �����
+    // ������ ���
     public static boolean ALLOW_DSHOP;
     public static boolean ALLOW_DSKILLS;
 
 	public static boolean DS_ALL_SUBS;
-    // китайский шоп
+    // ��������� ���
     public static boolean ALLOW_CSHOP;
-    //public static int DSHOP_COIN; // цена на месяц
-    //public static String DSHOP_COIN_NEMA; // название итема
-    // аукцион
+    //public static int DSHOP_COIN; // ���� �� �����
+    //public static String DSHOP_COIN_NEMA; // �������� �����
+    // �������
     public static int BBS_AUC_ITEM_COIN;
     public static int BBS_AUC_ITEM_PRICE;
     public static String BBS_AUC_ITEM_NAME;
@@ -2117,19 +2129,19 @@ public final class Config {
     public static final FastMap<Integer, String> BBS_AUC_MONEYS = new FastMap<Integer, String>().shared("Config.BBS_AUC_MONEYS");
     public static int BBS_AUC_EXPIRE_DAYS;
     /**
-     * Баффер
+     * ������
      *
      */
-    //профили
+    //�������
     public static int BUFFER_ID;
     public static boolean BUFF_CANCEL;
     public static final FastMap<Integer, Integer> M_BUFF = new FastMap<Integer, Integer>().shared("Config.M_BUFF");
     public static final FastMap<Integer, Integer> F_BUFF = new FastMap<Integer, Integer>().shared("Config.F_BUFF");
     public static final FastTable<Integer> F_PROFILE_BUFFS = new FastTable<Integer>();
-    // доп. разрешенные баффы
+    // ���. ����������� �����
     public static final FastTable<Integer> C_ALLOWED_BUFFS = new FastTable<Integer>();
     /**
-     * Почта
+     * �����
      *
      */
     public static boolean POST_CHARBRIEF;
@@ -2139,7 +2151,7 @@ public final class Config {
     public static String POST_NPCNAME;
     public static EventReward POST_BRIEF_ITEM;
     /**
-     * КлассМастер
+     * �����������
      *
      */
     public static String MASTER_NPCNAME;
@@ -2150,7 +2162,7 @@ public final class Config {
     public static int CLAN_LVL8;
 
     /**
-     * Евенты
+     * ������
      *
      */
     public static class EventReward {
@@ -2173,7 +2185,7 @@ public final class Config {
             this.chance = chance;
         }
     }
-    // МассПвп
+    // �������
     public static final String EVENT_FILE = "./config/events.cfg";
     public static boolean MASS_PVP;
     public static long MPVP_RTIME;
@@ -2199,28 +2211,28 @@ public final class Config {
     public static int MPVP_MAXP;
     public static boolean MPVP_NOBL;
     public static boolean TVT_NOBL;
-    // Нападение на Шуттгарт
+    // ��������� �� ��������
     public static boolean ALLOW_SCH;
-    public static int SCH_TIMEBOSS; //время жизни босса
-    public static int SCH_TIME1; // Время до начала спауна монстров, после обьявления о начале евента
-    public static int SCH_TIME2; // 2 волна мобов
-    public static int SCH_TIME3; // 3 волна мобов
-    public static int SCH_TIME4; // 4 волна мобов
-    public static int SCH_TIME5; // 5 волна мобов
-    public static int SCH_TIME6; // 6 волна мобов
-    public static long SCH_NEXT; //повтороное проведение евента через
-    public static int SCH_RESTART; //время запуска после перезагрузки скрипта, если удалить значения в бд
-    public static int SCH_MOB1; //мобы первой волны
-    public static int SCH_MOB2; //мобы первой волны
-    public static int SCH_MOB3; //мобы первой волны
-    public static int SCH_MOB4; //мобы первой волны
-    public static int SCH_MOB5; //мобы первой волны
-    public static int SCH_MOB6; //мобы первой волны
+    public static int SCH_TIMEBOSS; //����� ����� �����
+    public static int SCH_TIME1; // ����� �� ������ ������ ��������, ����� ���������� � ������ ������
+    public static int SCH_TIME2; // 2 ����� �����
+    public static int SCH_TIME3; // 3 ����� �����
+    public static int SCH_TIME4; // 4 ����� �����
+    public static int SCH_TIME5; // 5 ����� �����
+    public static int SCH_TIME6; // 6 ����� �����
+    public static long SCH_NEXT; //���������� ���������� ������ �����
+    public static int SCH_RESTART; //����� ������� ����� ������������ �������, ���� ������� �������� � ��
+    public static int SCH_MOB1; //���� ������ �����
+    public static int SCH_MOB2; //���� ������ �����
+    public static int SCH_MOB3; //���� ������ �����
+    public static int SCH_MOB4; //���� ������ �����
+    public static int SCH_MOB5; //���� ������ �����
+    public static int SCH_MOB6; //���� ������ �����
     public static int SCH_BOSS; //Boss
     public static boolean SCH_ALLOW_SHOP;
-    public static int SCH_SHOP; //нпц которого спавним после победы над монстрами
-    public static int SCH_SHOPTIME; //нпц которого спавним после победы над монстрами
-    // Сезон охоты
+    public static int SCH_SHOP; //��� �������� ������� ����� ������ ��� ���������
+    public static int SCH_SHOPTIME; //��� �������� ������� ����� ������ ��� ���������
+    // ����� �����
     public static boolean OPEN_SEASON;
     public static int OS_NEXT;
     public static int OS_RESTART;
@@ -2231,7 +2243,7 @@ public final class Config {
     public static int OS_MINLVL;
     public static int OS_MINPLAYERS;
     public static final FastList<EventReward> OS_REWARDS = new FastList<EventReward>();
-    // Последний герой
+    // ��������� �����
     public static boolean ELH_ENABLE;
     public static long ELH_ARTIME;
     public static long ELH_REGTIME;
@@ -2254,16 +2266,16 @@ public final class Config {
     public static boolean ELH_FORBID_MAGIC;
     public static String ELH_ALT_NAME;
     public static final FastList<Integer> ELH_FORB_POTIONS = new FastList<Integer>();
-    //бк
+    //��
     public static final FastTable<Integer> FC_ALLOWITEMS = new FastTable<Integer>();
-    //рождество
+    //���������
     public static boolean ALLOW_XM_SPAWN;
     public static final FastList<EventReward> XM_DROP = new FastList<EventReward>();
     public static long XM_TREE_LIFE;
-    //медальки
+    //��������
     public static boolean ALLOW_MEDAL_EVENT;
     public static final FastList<EventReward> MEDAL_EVENT_DROP = new FastList<EventReward>();
-    //захват базы
+    //������ ����
     public static boolean EBC_ENABLE;
     public static long EBC_ARTIME;
     public static long EBC_REGTIME;
@@ -2293,7 +2305,7 @@ public final class Config {
 	public static boolean ALT_BC_BUFFS;
 	public static final FastMap<Integer, Integer> BC_MAGE_BUFFS = new FastMap<Integer, Integer>().shared("Config.BC_MAGE_BUFFS");
 	public static final FastMap<Integer, Integer> BC_FIGHTER_BUFFS = new FastMap<Integer, Integer>().shared("Config.BC_FIGHTER_BUFFS");
-    //дозор
+    //�����
     public static boolean EENC_ENABLE;
     public static long EENC_ARTIME;
     public static long EENC_REGTIME;
@@ -2312,13 +2324,13 @@ public final class Config {
     public static int EENC_TICKETCOUNT;
     public static final FastList<EventReward> EENC_REWARDS = new FastList<EventReward>();
     public static final FastMap<Integer, FastList<Location>> EENC_POINTS = new FastMap<Integer, FastList<Location>>().shared("Config.EENC_POINTS");
-    //анархия
+    //�������
     public static boolean ANARCHY_ENABLE;
     public static int ANARCHY_DAY;
     public static int ANARCHY_HOUR;
     public static long ANARCHY_DELAY;
     public static final FastList<Integer> ANARCHY_TOWNS = new FastList<Integer>();
-    //замес
+    //�����
     public static boolean FIGHTING_ENABLE;
     public static int FIGHTING_DAY;
     public static int FIGHTING_HOUR;
@@ -2334,38 +2346,38 @@ public final class Config {
     public static int FIGHTING_NPCID;
     public static Location FIGHTING_NPCLOC;
     public static Location FIGHTING_TPLOC;
-    // 1 ип - 1 игрок
+    // 1 �� - 1 �����
     public static boolean EVENTS_SAME_IP;
     public static boolean EVENTS_SAME_HWID;
     /**
-     * Разное
+     * ������
      *
      */
-    // оптимизация
+    // �����������
     public static int DEADLOCKCHECK_INTERVAL;
     public static int RESTART_HOUR;
-    // накрутка онлайна
+    // �������� �������
     public static boolean ALLOW_FAKE_PLAYERS;
     public static int FAKE_PLAYERS_PERCENT;
     public static int FAKE_PLAYERS_DELAY;
-    // запрещенные итемы на олимпе
+    // ����������� ����� �� ������
     public static final FastTable<Integer> F_OLY_ITEMS = new FastTable<Integer>();
-    // Слать остальным пакеты, если невидим?
+    // ����� ��������� ������, ���� �������?
     public static boolean INVIS_SHOW;
-    // Задержка на спаун НПЦ
+    // �������� �� ����� ���
     public static long NPC_SPAWN_DELAY;
     public static int NPC_SPAWN_TYPE;
-    // заточка при покупке в мультиселле
+    // ������� ��� ������� � �����������
     public static int MULT_ENCH;
     public static final FastMap<Integer, Integer> MULT_ENCHS = new FastMap<Integer, Integer>().shared("Config.MULT_ENCHS");
-    // последняя активность клана, дабы удалять кх с мертвых кланов
+    // ��������� ���������� �����, ���� ������� �� � ������� ������
     public static long CLAN_CH_CLEAN;
     public static boolean CHECK_SKILLS;
-    // снимать бафф при смерти, если не висел ноблесс
+    // ������� ���� ��� ������, ���� �� ����� �������
     public static boolean CLEAR_BUFF_ONDEATH;
-    // накрутка без спауна ботов
+    // �������� ��� ������ �����
     public static float ONLINE_PERC;
-    // ключ
+    // ����
     public static String SERVER_SERIAL_KEY;
     /**
      * .menu
@@ -2440,7 +2452,7 @@ public final class Config {
     public static int PWCNGCLASS_COIN;
     public static int PWCNGCLASS_PRICE;
     public static String PWCNGCLASS_COINNAME;
-    // почта
+    // �����
     public static int EXPOSTB_COIN;
     public static int EXPOSTB_PRICE;
     public static String EXPOSTB_NAME;
@@ -2448,7 +2460,7 @@ public final class Config {
     public static int EXPOSTA_PRICE;
     public static String EXPOSTA_NAME;
     /**
-     * Премиум
+     * �������
      *
      */
     public static boolean PREMIUM_ENABLE;
@@ -2478,7 +2490,7 @@ public final class Config {
     public static int PREMIUM_START_DAYS;
     public static final FastList<Integer> PREMIUM_PROTECTED_ITEMS = new FastList<Integer>();
     /**
-     * Голосовалка
+     * �����������
      *
      */
     public static String VOTE_SERVER_PREFIX;
@@ -2501,7 +2513,7 @@ public final class Config {
     public static final FastList<EventReward> MMOTOP_ONLINE_REWARDS = new FastList<EventReward>();
     public static int MMOTOP_LOGTYPE;
     /**
-     * Доп. настройки нпц
+     * ���. ��������� ���
      *
      */
     public static boolean RAID_CUSTOM_DROP;
@@ -2538,13 +2550,13 @@ public final class Config {
     public static long ZAKEN_MAX_RESPAWN;
     public static long ZAKEN_RESTART_DELAY;
     public static long ZAKEN_PLAYER_MAX_LVL;
-    // можно ли бить нпц
+    // ����� �� ���� ���
     public static boolean ALLOW_HIT_NPC;
     public static boolean KILL_NPC_ATTACKER;
-    // анонс появления/смерти эпиков
+    // ����� ���������/������ ������
     public static boolean ANNOUNCE_EPIC_STATES;
     /**
-     * Альтернативная заточка
+     * �������������� �������
      *
      */
     public static boolean ENCHANT_ALT_PACKET;
@@ -2571,7 +2583,7 @@ public final class Config {
     public static int ENCHANT_ALT_JEWERLYFAILBLESS;
     public static int ENCHANT_ALT_JEWERLYFAILCRYST;
     public static boolean ENCHANT_HERO_WEAPONS;
-    //антиклик
+    //��������
     public static boolean ENCH_ANTI_CLICK;
     public static int ENCH_ANTI_CLICK_STEP;
     public static int ENCH_ANTI_CLICK_TYPE;
@@ -2581,11 +2593,11 @@ public final class Config {
     public static int BLESS_BONUS_ENCH1;
     public static int BLESS_BONUS_ENCH2;
     public static boolean ENCH_SHOW_CHANCE;
-    // шаг заточки
+    // ��� �������
     public static int ENCHANT_ALT_STEP;
 
     /**
-     * бонус за пвп
+     * ����� �� ���
      */
     public static class PvpColor {
 
@@ -2654,18 +2666,18 @@ public final class Config {
     public static long PVPPK_STEPBAN;
     public static boolean PVPPK_REWARD_ZONE;
     public static boolean PVP_TITLE_SKILL;
-    // итем для открытия мультиселлов
+    // ���� ��� �������� ������������
     public static final FastMap<Integer, EventReward> MULTVIP_CARDS = new FastMap<Integer, EventReward>().shared("Config.MULTVIP_CARDS");
-    // награда за захват замка
+    // ������� �� ������ �����
     public static boolean SIEGE_REWARD_CLAN;
     public static boolean CASTLE_SIEGE_REWARD_STATIC;
     public static final FastMap<Integer, FastList<EventReward>> CASTLE_SIEGE_REWARDS = new FastMap<Integer, FastList<EventReward>>().shared("Config.CASTLE_SIEGE_REWARDS");
     public static final FastMap<Integer, FastList<EventReward>> CASTLE_RPOTECT_REWARDS = new FastMap<Integer, FastList<EventReward>>().shared("Config.CASTLE_RPOTECT_REWARDS");
-    // пассивки апеллы
+    // �������� ������
     public static boolean ALLOW_APELLA_BONUSES;
-    // альт-б в пис зоне
+    // ����-� � ��� ����
     public static boolean BBS_ONLY_PEACE;
-    // разрешенные поты на твт
+    // ����������� ���� �� ���
     public static final FastList<Integer> TVT_WHITE_POTINS = new FastList<Integer>();
     ///////////////
     public static int ALT_OLY_REG_DISPLAY = 100;
@@ -2682,7 +2694,7 @@ public final class Config {
     public static int ALT_OLY_RANK3_POINTS = 55;
     public static int ALT_OLY_RANK4_POINTS = 35;
     public static int ALT_OLY_RANK5_POINTS = 20;
-    // предупреждения при входе в игру
+    // �������������� ��� ����� � ����
     public static boolean SHOW_ENTER_WARNINGS = false;
     // pc cafe
     public static boolean PC_CAFE_ENABLED;
@@ -2694,86 +2706,91 @@ public final class Config {
     public static int WEBSERVER_PORT;
     public static String WEBSERVER_FOLDER;
     public static String WEBSERVER_PAGE;
-    // увеличение времени баффов
+    // ���������� ������� ������
     public static int ALT_BUFF_TIMEMUL;
     public static final FastMap<Integer, Integer> ALT_BUFF_TIME = new FastMap<Integer, Integer>().shared("Config.ALT_BUFF_TIME");
-    // шансы прохождения скиллов
+    // ����� ����������� �������
     public static final FastMap<Integer, Integer> ALT_SKILL_CHANSE = new FastMap<Integer, Integer>().shared("Config.ALT_SKILL_CHANSE");
-    // одевать геройские пухи не героям
+    // ������� ��������� ���� �� ������
     public static boolean HERO_ITEMS_PENALTY;
-    // доп маг пухи
+    // ��� ��� ����
     public static final FastList<Integer> ALT_MAGIC_WEAPONS = new FastList<Integer>();
-    // отдельные итемы при старте
+    // ��������� ����� ��� ������
     public static final FastMap<Integer, Integer> CUSTOM_STRT_ITEMS = new FastMap<Integer, Integer>().shared("Config.CUSTOM_STRT_ITEMS");
-    // альтернативная академия
+    // �������������� ��������
     public static boolean ACADEMY_CLASSIC;
     public static int ACADEMY_POINTS;
     public static boolean ACADEMY_BONUS_ON;
-    // отключить баттл/спелл форсы
+    // ��������� �����/����� �����
     public static boolean DISABLE_FORCES;
-    // макс енчант в трейде
+    // ���� ������ � ������
     public static int MAX_TRADE_ENCHANT;
-    // альтернативная продолжительность олимпа
+    // �������������� ����������������� ������
     public static int ALT_OLYMPIAD_PERIOD;
 	public static boolean ALT_OLY_MONDAY;
-    // взятие квестов с проклятым оружием
+    // ������ ������� � ��������� �������
     public static boolean ALLOW_CURSED_QUESTS;
     public static boolean BBS_CURSED_SHOP;
     public static boolean BBS_CURSED_TELEPORT;
     public static boolean BBS_CURSED_BUFF;
-    // чат фильтр
+    // ��� ������
     public static String CHAT_FILTER_STRING;
     public static final FastTable<String> CHAT_FILTER_STRINGS = new FastTable<String>();
-    // интервал осад, дни
+    // �������� ����, ���
     public static int ALT_SIEGE_INTERVAL;
-    //лимит на заточку опр. вещей
+    //����� �� ������� ���. �����
     public static final FastMap<Integer, Integer> ENCHANT_LIMITS = new FastMap<Integer, Integer>().shared("Config.ENCHANT_LIMITS");
-    // анимация сулшотов
+    // �������� ��������
     public static boolean SOULSHOT_ANIM;
-    // запретить хилить таргет за воротами
+    // ��������� ������ ������ �� ��������
     public static boolean PROTECT_GATE_PVP;
-    // запрет соба на олимпе
+    // ������ ���� �� ������
     public static boolean PROTECT_OLY_SOB;
-    // время на принятие запросов
+    // ����� �� �������� ��������
     public static int WEDDING_ANSWER_TIME;
     public static int RESURECT_ANSWER_TIME;
     public static int SUMMON_ANSWER_TIME;
-    // макс. бонус тату
+    // ����. ����� ����
     public static int MAX_HENNA_BONUS;
-    // скиллы с фиксированным откатом
+    // ������ � ������������� �������
+    public static boolean ENABLE_STATIC_REUSE;
     public static final FastList<Integer> ALT_FIXED_REUSES = new FastList<Integer>();
+    public static boolean ENABLE_STATIC_HIT_TIME;
     public static final FastMap<Integer, Integer> ALT_FIXED_HIT_TIME = new FastMap<Integer, Integer>();
     public static final FastMap<Integer, Integer> ALT_FIXED_HIT_TIME_OLY = new FastMap<Integer, Integer>();
-    // макс. баффов аугментов
+    // ����. ������ ���������
     public static int MAX_AUGMENTS_BUFFS;
-    // Возможность взятия любого саб-класса
+    // ����������� ������ ������ ���-������
     public static boolean ALT_ANY_SUBCLASS;
-    // Возможность взятия любого саб-класса + овер и крафт
+    // ����������� ������ ������ ���-������ + ���� � �����
     public static boolean ALT_ANY_SUBCLASS_OVERCRAF;
-    // ивент зоны
+    public static boolean SUBS_3RD_PROFF;
+    // ����� ����
     public static EventTerritory TVT_POLY;
     public static EventTerritory LASTHERO_POLY;
     public static EventTerritory MASSPVP_POLY;
     public static EventTerritory BASECAPTURE_POLY;
-    // Возможность взятия любого саб-класса
+    // ����������� ������ ������ ���-������
     public static boolean ALT_AUGMENT_HERO;
-    // Скиллы с резистом к канцелу
+    // ������ � �������� � �������
     public static final FastList<Integer> PROTECTED_BUFFS = new FastList<Integer>();
-    // потолки шансов прохождения скиллов, импорт l2p
+    // ������ ��� ������
+    public static final FastList<Integer> SKILL_LIST_IS_SELF_DISPEL = new FastList<Integer>();
+    // ������� ������ ����������� �������, ������ l2p
     public static double SKILLS_CHANCE_MIN;
     public static double SKILLS_CHANCE_MAX;
-    // титул при создании перса
+    // ����� ��� �������� �����
     public static String STARTUP_TITLE;
-    // время на поднятие дропа
+    // ����� �� �������� �����
     public static long PICKUP_PENALTY;
-    // заставки  к боссам
+    // ��������  � ������
     public static boolean DISABLE_BOSS_INTRO;
-    // смертельный рефлект
+    // ����������� �������
     public static boolean DEATH_REFLECT;
-    // восстановление оффтрейдеров после рестарта
+    // �������������� ������������ ����� ��������
     public static boolean ALT_RESTORE_OFFLINE_TRADE;
     public static long ALT_OFFLINE_TRADE_LIMIT;
-    // накрутка онлайна, улучшенная
+    // �������� �������, ����������
     public static boolean ALLOW_FAKE_PLAYERS_PLUS;
     public static int FAKE_PLAYERS_PLUS_COUNT;
     public static long FAKE_PLAYERS_PLUS_DELAY_SPAWN;
@@ -2790,63 +2807,63 @@ public final class Config {
     public static PvpColor FAKE_PLAYERS_ENCHANT;
     public static final FastList<Integer> FAKE_PLAYERS_NAME_CLOLORS = new FastList<Integer>();
     public static final FastList<Integer> FAKE_PLAYERS_TITLE_CLOLORS = new FastList<Integer>();
-    // другой статус онлайна у офф.трейдеров
+    // ������ ������ ������� � ���.���������
     public static boolean ALT_OFFLINE_TRADE_ONLINE;
-    // антифлуд на повторные фразы в чат
+    // �������� �� ��������� ����� � ���
     public static boolean PROTECT_SAY;
     public static long PROTECT_SAY_BAN;
     public static int PROTECT_SAY_COUNT;
     public static long PROTECT_SAY_INTERVAL;
-    // статистика
+    // ����������
     public static boolean CACHED_SERVER_STAT;
-    // падения с высоты
+    // ������� � ������
     public static boolean ALLOW_FALL;
-    // дроп шмоток при смерте от мобов
+    // ���� ������ ��� ������ �� �����
     public static boolean KARMA_PK_NPC_DROP;
-    // заточка пух у нпц
+    // ������� ��� � ���
     public static int ENCH_NPC_CAHNCE;
     public static PvpColor ENCH_NPC_MINMAX;
     public static int ENCH_MONSTER_CAHNCE;
     public static PvpColor ENCH_MONSTER_MINMAX;
     public static int ENCH_GUARD_CAHNCE;
     public static PvpColor ENCH_GUARD_MINMAX;
-    // стекбл скроллы заточки
+    // ������ ������� �������
     public static boolean ENCH_STACK_SCROLLS;
-    // валюта для покупки кланхолла
+    // ������ ��� ������� ���������
     public static int CLANHALL_PAYMENT;
-    // хук, шанс миража
+    // ���, ���� ������
     public static int MIRAGE_CHANCE;
-    // что не варили цп нонстопом
+    // ��� �� ������ �� ���������
     public static boolean SUMMON_CP_PROTECT;
-    // запрет на атаку луком конкретным профам
+    // ������ �� ����� ����� ���������� ������
     public static final FastList<Integer> FORBIDDEN_BOW_CLASSES = new FastList<Integer>();
     public static final FastList<Integer> FORBIDDEN_BOW_CLASSES_OLY = new FastList<Integer>();
     public static final FastList<Integer> FORBIDDEN_FIST_CLASSES = new FastList<Integer>();
     public static final FastList<Integer> FORBIDDEN_DUAL_CLASSES = new FastList<Integer>();
-    // фразы мобов
+    // ����� �����
     public static boolean ALLOW_NPC_CHAT;
     public static int MNPC_CHAT_CHANCE;
     // frinta
     public static int FRINTA_MMIN_PARTIES;
     public static int FRINTA_MMIN_PLAYERS;
-    // запрещенные шмотки на ивентах
+    // ����������� ������ �� �������
     public static boolean FORBIDDEN_EVENT_ITMES;
-    // cтандартные значения параметров чара
+    // c���������� �������� ���������� ����
     public static int VS_AUTOLOOT_VAL;
     public static int VS_PATHFIND_VAL;
     public static int VS_SKILL_CHANCES_VAL;
-    // свадьбы цвет ника
+    // ������� ���� ����
     public static PvpColor WEDDING_COLORS;
-    // олимп баффы
+    // ����� �����
     public static final FastMap<Integer, Integer> OLY_MAGE_BUFFS = new FastMap<Integer, Integer>().shared("Config.OLY_MAGE_BUFFS");
     public static final FastMap<Integer, Integer> OLY_FIGHTER_BUFFS = new FastMap<Integer, Integer>().shared("Config.OLY_FIGHTER_BUFFS");
-    // отключение привязки мультиселлов
+    // ���������� �������� ������������
     public static boolean MULTISSELL_PROTECT;
-    // отключение ошибок загрузки мультиселлов
+    // ���������� ������ �������� ������������
     public static boolean MULTISSELL_ERRORS;
-    // шансы открытия сундуков
+    // ����� �������� ��������
     public static int CHEST_CHANCE;
-    // web статистика
+    // web ����������
     public static boolean WEBSTAT_ENABLE;
     public static int WEBSTAT_INTERVAL;
     public static int WEBSTAT_INTERVAL2;
@@ -2855,85 +2872,77 @@ public final class Config {
     public static boolean WEBSTAT_CHEATS;
     public static int WEBSTAT_ENCHANT;
     public static boolean WEBSTAT_EPICLOOT;
-    //откат скиллов, оли
+    //����� �������, ���
     public static boolean ALT_OLY_RELOAD_SKILLS;
-    // шансы прохождениея дебаффов от мобов
+    // ����� ������������ �������� �� �����
     public static int MOB_DEBUFF_CHANCE;
-    // отложенные итемы
+    // ���������� �����
     public static boolean QUED_ITEMS_ENABLE;
     public static int QUED_ITEMS_INTERVAL;
     public static int QUED_ITEMS_LOGTYPE;
-    // рейты дропа сил стонов
+    // ����� ����� ��� ������
     public static double RATE_MUL_SEAL_STONE;
     public static float RATE_DROP_SEAL_STONE;
-    // специальный дроп
+    // ����������� ����
     public static boolean EVENT_SPECIAL_DROP;
-    // умножения выпавших шмоток в сб и эпиков
+    // ��������� �������� ������ � �� � ������
     public static double RATE_DROP_ITEMSRAIDMUL;
     public static double RATE_DROP_ITEMSGRANDMUL;
-    //бк выдавать шмотку в инвентарь
+    //�� �������� ������ � ���������
     public static boolean FC_INSERT_INVENTORY;
-    //макс. точка на олимпе
+    //����. ����� �� ������
     public static int OLY_MAX_WEAPON_ENCH;
     public static int OLY_MAX_ARMOT_ENCH;
-    //этих нпц нельзя бить
+    //���� ��� ������ ����
     public static final FastList<Integer> NPC_HIT_PROTECTET = new FastList<Integer>();
-    //GUI консолька
+    //GUI ���������
     public static boolean CONSOLE_ADVANCED;
-    //ноблесс за убийство Баракиеля
+    //������� �� �������� ���������
     public static boolean BARAKIEL_NOBLESS;
-    /**
-     * guard
-     */
-    public static boolean GAMEGUARD_ENABLED;
-    public static int GAMEGUARD_KEY = -1;
-    public static int GAMEGUARD_INTERVAL;
-    public static int GAMEGUARD_PUNISH;
-    public static boolean GAMEGUARD_LOG;
-    //покупка ноблесса
+    //������� ��������
     public static boolean NOBLES_ENABLE;
     public static int SNOBLE_COIN;
     public static int SNOBLE_PRICE;
     public static String SNOBLE_COIN_NAME;
-	//очистка пк
+	//������� ��
 	public static boolean CLEAR_PK_ENABLE;
 	public static int CL_PK_COIN;
 	public static int CL_PK_PRICE;
 	public static String CL_PK_COIN_NAME;
-	//очистка кармы
+	//������� �����
 	public static boolean CLEAR_KARMA_ENABLE;
 	public static int CL_KARMA_COIN;
 	public static int CL_KARMA_PRICE;
 	public static String CL_KARMA_COIN_NAME;
     //ancientwar
-    // конфиг на макс левел т.е указывал число и после указанного лвла чар не качаеться
+    // ������ �� ���� ����� �.� �������� ����� � ����� ���������� ���� ��� �� ���������
     public static int MAX_EXP_LEVEL;
     public static boolean FREE_PVP;
     public static boolean PROTECT_GRADE_PVP;
-    //обнуление очков олимпа после бана
+    //��������� ����� ������ ����� ����
     public static boolean CLEAR_OLY_BAN;
-    //запрет передачи итемов пету
+    //������ �������� ������ ����
     public static boolean GIVE_ITEM_PET;
-    //отключение кормежки петов
+    //���������� �������� �����
     public static boolean DISABLE_PET_FEED;
-    //альтернативная формула ентчанта
+    //�������������� ������� ��������
     public static boolean ENCHANT_ALT_FORMULA;
-    //спавн гвардов на осадах
+    //����� ������� �� ������
     public static boolean SIEGE_GUARDS_SPAWN;
-    //защита на тп
+    //������ �� ��
     public static long TELEPORT_PROTECTION;
-    //макс. значение скорости каста и атаки для подсчета отката скиллов
+    //����. �������� �������� ����� � ����� ��� �������� ������ �������
     public static int MAX_MATKSPD_DELAY;
     public static int MAX_PATKSPD_DELAY;
-    //макс. значение физ/маг атаки для подсчета прохождения дебаффов
+    //����. �������� ���/��� ����� ��� �������� ����������� ��������
     public static int MAX_MATK_CALC;
     public static int MAX_MDEF_CALC;
-    //мин. значение задержки скорости атаки
+    //���. �������� �������� �������� �����
     public static int MIN_ATKSPD_DELAY;
-    // бонусные скиллы за взятие замка
+    // �������� ������ �� ������ �����
     public static boolean CASTLE_SIEGE_SKILLS_DELETE;
     public static final FastMap<Integer, EventReward> CASTLE_SIEGE_SKILLS = new FastMap<Integer, EventReward>().shared("Config.CASTLE_SIEGE_SKILLS");
-    /// макс статы ботов
+    /// ���� ����� �����
     public static int FAKE_MAX_PATK_BOW;
     public static int FAKE_MAX_MDEF_BOW;
     public static int FAKE_MAX_PSPD_BOW;
@@ -2955,71 +2964,73 @@ public final class Config {
     public static int FAKE_MAX_MATK_HEAL;
     public static int FAKE_MAX_MSPD_HEAL;
     public static int FAKE_MAX_HP_HEAL;
-    // телепорт при ударе нпц
+    // �������� ��� ����� ���
     public static Location NPC_HIT_LOCATION;
-    //кикать с аккаунта
+    //������ � ��������
     public static int KICK_USED_ACCOUNT_TRYES;
-    //кланрепа за убийство рб
+    //�������� �� �������� ��
     public static int RAID_CLANPOINTS_REWARD;
     public static int EPIC_CLANPOINTS_REWARD;
-    //требования к поднятию лвл клана до 5
+    public static final FastMap<Integer, Integer> NPCS_DOWN_ABSORB = new FastMap<Integer, Integer>().shared("Config.NPCS_DOWN_ABSORB");
+    //���������� � �������� ��� ����� �� 5
     public static boolean DISABLE_CLAN_REQUREMENTS;
-    // координаты респа закена
+    // ���������� ����� ������
     public static Location ZAKEN_SPAWN_LOC;
-    //продажа ника в альтб
+    //������� ���� � �����
     public static int BBS_CNAME_COIN;
     public static int BBS_CNAME_PRICE;
     public static String BBS_CNAME_VAL;
-    //в этих шмотках нельзя атаковать и ресать
+    //� ���� ������� ������ ��������� � ������
     public static final FastList<Integer> HIPPY_ITEMS = new FastList<Integer>();
-    //запрет на атаку мобов с опр. шмотками у игрока
+    //������ �� ����� ����� � ���. �������� � ������
     public static boolean PROTECT_MOBS_ITEMS;
-    //max заточка у рб
+    //max ������� � ��
     public static int BOSS_ZONE_MAX_ENCH;
-    //продолжительность езды на страйдере
+    //����������������� ���� �� ���������
     public static int MOUNT_EXPIRE;
-    //запрещенные шмотки в босс зонах
+    //����������� ������ � ���� �����
     public static final FastList<Integer> BOSS_ITEMS = new FastList<Integer>();
-    //запрещенные скиллы с проклятым оружием
+    //����������� ������ � ��������� �������
     public static final FastList<Integer> FORB_CURSED_SKILLS = new FastList<Integer>();
-    //лечащие саммоны
+    //������� �������
     public static int HEALSUM_ANIM;
     public static long HEALSUM_DELAY;
     public static final FastMap<Integer, EventReward> HEALING_SUMMONS = new FastMap<Integer, EventReward>().shared("Config.HEALING_SUMMONS");
-    //уникальные скиллы
+    //���������� ������
     public static boolean ALLOW_UNIQ_SKILLS;
     public static final FastMap<Integer, Integer> UNIQ_SKILLS = new FastMap<Integer, Integer>().shared("Config.UNIQ_SKILLS");
-    //откат скиллов на оли перед и после боя
+    //����� ������� �� ��� ����� � ����� ���
     public static boolean OLY_RELOAD_SKILLS_BEGIN;
     public static boolean OLY_RELOAD_SKILLS_END;
-    //увод нпц на большие расстояния
+    //���� ��� �� ������� ����������
     public static boolean NPC_CHECK_RANGE;
     public static int NPC_CHECK_MAX_RANGE;
-    //4 кубка
+    //4 �����
     public static int FS_PARTY_RANGE;
     public static int FS_CYCLE_MIN;
     public static boolean FS_WALL_DOORS;
-    //есть скроллы точки
+    //���� ������� �����
     public static boolean EAT_ENCH_SCROLLS;
-    //запрет телепорта, если зареган на ивенте
+    //������ ���������, ���� ������� �� ������
     public static boolean FORB_EVENT_REG_TELE;
-    //все герои
+    //��� �����
     public static boolean EVERYBODE_HERO;
-    //награда за геройство
+    public static boolean DESTROY_HERO_ITEM_AFTER_END_HERO;
+    //������� �� ���������
     public static final FastList<EventReward> ALT_HERO_REWARDS = new FastList<EventReward>();
-    //нпц в виде игроков
+    //��� � ���� �������
     public static boolean ALLOW_PC_NPC;
-    //голосовалка ncs.Spawn
+    //����������� ncs.Spawn
     public static boolean VOTE_NCS_SPAWN;
-    //фринта
+    //������
     public static long FRINTA_UPDATE_LAIR;
     public static long FRINTA_MIN_RESPAWN;
     public static long FRINTA_MAX_RESPAWN;
     public static long FRINTA_RESTART_DELAY;
     public static long FRINTA_SPAWN_DELAY;
-    //стартовое СП
+    //��������� ��
     public static int ALT_START_SP;
-    //увод мобов
+    //���� �����
     public static final FastMap<Integer, Integer> NPC_CHASE_RANGES = new FastMap<Integer, Integer>().shared("Config.NPC_CHASE_RANGES");
     //
     public static boolean HTMPARA_WELCOME;
@@ -3041,7 +3052,7 @@ public final class Config {
     //
     public static boolean STACK_LIFE_STONE;
 	public static boolean STACK_GIANT_BOOKS;
-    // разбитые яйца
+    // �������� ����
     public static boolean ALLOW_BE;
     public static int BE_EGG_ID;
     public static long BE_LIMIT;
@@ -3067,7 +3078,7 @@ public final class Config {
     public static final FastMap<Integer, Integer> GUILD_MOD_MASKS = new FastMap<Integer, Integer>().shared("Config.GUILD_MOD_MASKS");
     public static final FastList<EventReward> GUILD_MOD_REWARDS = new FastList<EventReward>();
     public static boolean GUILD_BALANCE_TEAM;
-    // релог в босс зонах
+    // ����� � ���� �����
     public static boolean BOSS_ZONE_LOGOUT;
     //
     public static final FastList<Integer> FORBID_NPC_HELLO = new FastList<Integer>();
@@ -3097,12 +3108,12 @@ public final class Config {
     public static boolean TRADE_ZONE_ENABLE;
     //
     public static EventReward CP_RESTORE;
-    //смена пола
+    //����� ����
     public static boolean CHGSEX_ENABLE;
     public static int CHGSEX_COIN;
     public static int CHGSEX_PRICE;
     public static String CHGSEX_COIN_NAME;
-    //смена класса
+    //����� ������
     public static boolean CHGCLASS_ENABLE;
     public static int CHGCLASS_COIN;
     public static int CHGCLASS_PRICE;
@@ -3113,7 +3124,7 @@ public final class Config {
     public static boolean SHOW_BOSS_RESPAWNS;
     //
     public static final FastList<Integer> FORBIDDEN_WH_ITEMS = new FastList<Integer>();
-    //запрещенные скиллы на олимпе
+    //����������� ������ �� ������
     public static final FastList<Integer> FORB_OLY_SKILLS = new FastList<Integer>();
     public static final FastList<Integer> FORB_EVENT_SKILLS = new FastList<Integer>();
     //
@@ -3126,39 +3137,37 @@ public final class Config {
     public static int GLD_80LVL_PRICE;
     public static int GLD_HEROCHAT_COIN;
     public static int GLD_HEROCHAT_PRICE;
-    //Сабы Phoenix
-    public static boolean ALT_SUBCLASS_PHOENIX;
-    //действия петов
+    //�������� �����
     public static final FastMap<Integer, Integer> PETS_ACTION_SKILLS = new FastMap<Integer, Integer>().shared("Config.ALT_SIEGE_GUARD_PRICES");
-    //задержка на вызов страйдера
+    //�������� �� ����� ���������
     public static long SUMMON_DELAY;
-    //оплата аренды пета
+    //������ ������ ����
     public static final FastList<Integer> PET_RENT_PRICES = new FastList<Integer>();
     public static int PET_RENT_COIN;
     public static String PET_RENT_COIN_NAME;
 
 	public static boolean ANNOUNCE_RAID_SPAWNS;
 	public static boolean ANNOUNCE_RAID_KILLS;
-    //антифлуд на убийство мобов
+    //�������� �� �������� �����
     /*public static boolean FARM_DELAY;
      public static final FastList<Integer> FARM_DELAY_MOBS = new FastList<Integer>();
      public static int FARM_DELAY_INTERVAL;
      public static int FARM_CHECK_TYPE;
      public static int FARM_TRYES_TELE;
      public static Location FARM_TRYES_LOC;*/
-    //пвп зоны
+    //��� ����
     public static boolean PVP_ZONE_REWARDS;
-    //доп дроп с сундуков
+    //��� ���� � ��������
     public static boolean CUSTOM_CHEST_DROP;
-    //кристал точки
+    //������� �����
     public static boolean ALLOW_CRYSTAL_SCROLLS;
-    //антилогаут-пати зона
+    //����������-���� ����
     public static boolean ALLP_ZONE;
-    //отключение рефлекта по мобам
+    //���������� �������� �� �����
     public static boolean DISABLE_REFLECT_ON_MOBS;
-    //откат скиллов при лвлап
+    //����� ������� ��� �����
     public static boolean LVLUP_RELOAD_SKILLS;
-    //Табличка вылетает при реге на Эвенты как на L2NextGen  ДА НЕТ на 5 сек
+    //�������� �������� ��� ���� �� ������ ��� �� L2NextGen  �� ��� �� 5 ���
     public static boolean EVENT_REG_POPUP;
     public static int EVENT_REG_POPUPLVL;
     //
@@ -3184,8 +3193,6 @@ public final class Config {
     public static boolean CHECK_PVP_ZONES;
     public static boolean PVP_DELAY;
     public static long CHECK_PVP_DELAY;
-    //
-    public static boolean CATS_GUARD;
     //
     public static int CLANHALL_FEE_ID;
     public static boolean CH_AUCTION_TOWNS;
@@ -3224,7 +3231,7 @@ public final class Config {
     public static boolean REWARD_PVP_ZONE_HWID;
     public static boolean REWARD_PVP_ZONE_IP;
     public static int REWARD_PVP_ZONE_ANNOUNCE;
-    // премиум шмотки
+    // ������� ������
     public static boolean PREMIUM_ITEMS;
     public static final FastList<Integer> PREMIUM_ITEMS_LIST = new FastList<Integer>();
     //
@@ -3267,6 +3274,8 @@ public final class Config {
     public static boolean CUSTOM_OLY_SKILLS;
     public static boolean HWID_SPAM_CHECK;
     public static boolean EARTHQUAKE_OLY;
+    public static boolean ENABLE_FAKE_ITEMS_MOD;
+    public static boolean ENABLE_BALANCE_SYSTEM;
     public static boolean CUSTOM_PREMIUM_DROP;
     //
     public static boolean ACP_ENGINE;
@@ -3291,6 +3300,23 @@ public final class Config {
     public static boolean ITEM_COUNT_LIMIT;
     public static boolean ITEM_COUNT_LIMIT_WARN;
     public static final FastMap<Integer, Integer> ITEM_MAX_COUNT = new FastMap<Integer, Integer>().shared("Config.ITEM_MAX_COUNT");
+    public static final FastMap<Integer, Integer> SIEGE_CASTLE_CRP = new FastMap<Integer, Integer>().shared("Config.SIEGE_CASTLE_CRP");
+
+    public static boolean ACTIVE_AC;
+    public static int MASK_HWID;
+
+    public static int SHORTCUTS_PAGE_INDEX;
+    public static int TARGETING_RADAIUS;
+    public static int USE_LIFE_PERCENTAGE_THRESHOLD;
+    public static int USE_MP_PERCENTAGE_THRESHOLD;
+    public static int USE_HP_PERCENTAGE_THRESHOLD;
+    public static int MP_POT_ITEM_ID;
+    public static int HP_POT_ITEM_ID;
+    public static int HP_POT_SKILL_ID;
+    public static Integer[] ATTACK_SLOTS;
+    public static Integer[] CHANCE_SLOTS;
+    public static Integer[] SELF_SLOTS;
+    public static Integer[] LOW_LIFE_SLOTS;
 
     /**
      * This class initializes all global variables for configuration.<br> If key
@@ -3344,12 +3370,15 @@ public final class Config {
             QUERYEXECUTETIMELIMIT = Integer.parseInt(serverSettings.getProperty("QueryExecuteTimeLimit", "0"));
             CONNECTIONTIMEOUT = Integer.parseInt(serverSettings.getProperty("ConnectionTimeout", "0"));
 
+            MASK_HWID = Integer.parseInt(serverSettings.getProperty("MaskHWID", "14"));
+
             LAZYINIT = Boolean.parseBoolean(serverSettings.getProperty("LazyInit", "False"));
             TRANSACTIONRECOVERYENABLED = Boolean.parseBoolean(serverSettings.getProperty("TransactionRecoveryEnabled", "False"));
 
             DATAPACK_ROOT = new File(serverSettings.getProperty("DatapackRoot", ".")).getCanonicalFile();
 
             CNAME_TEMPLATE = serverSettings.getProperty("CnameTemplate", ".*");
+            DON_CNAME_TEMPLATE = serverSettings.getProperty("DonCnameTemplate", ".*");
             PET_NAME_TEMPLATE = serverSettings.getProperty("PetNameTemplate", ".*");
 
             MAX_CHARACTERS_NUMBER_PER_ACCOUNT = Integer.parseInt(serverSettings.getProperty("CharMaxNumber", "0"));
@@ -3395,18 +3424,6 @@ public final class Config {
         } catch (Exception e) {
             e.printStackTrace();
             throw new Error("Failed to Load " + CONFIGURATION_FILE + " File.");
-        }
-    }
-
-    public static void loadCatsGuardCfg() {
-        try {
-            Properties cg = new Properties();
-            InputStream is2 = new FileInputStream(new File("./catsguard/catsguard.cfg"));
-            cg.load(is2);
-            is2.close();
-            CATS_GUARD = Boolean.parseBoolean(cg.getProperty("Enabled", "False"));
-        } catch (Exception e) {
-            CATS_GUARD = false;
         }
     }
 
@@ -3593,10 +3610,43 @@ public final class Config {
             SAY_PM_BAN_TYPE = Integer.parseInt(optionsSettings.getProperty("SayPmBanType", "3"));
             SAY_PM_BAN_TIME = TimeUnit.MINUTES.toMillis(Integer.parseInt(optionsSettings.getProperty("SayPmBanChat", "180")));
             ADVANCED_CHAT_FILTER = Boolean.parseBoolean(optionsSettings.getProperty("ChatFilterSpam", "False"));
+
+            SHORTCUTS_PAGE_INDEX = Integer.parseInt(optionsSettings.getProperty("ShortcutsPageIndex", "9"));
+            TARGETING_RADAIUS = Integer.parseInt(optionsSettings.getProperty("TargetingRadius", "2000"));
+            USE_LIFE_PERCENTAGE_THRESHOLD = Integer.parseInt(optionsSettings.getProperty("UseLifePercentageThreshold", "30"));
+            USE_MP_PERCENTAGE_THRESHOLD = Integer.parseInt(optionsSettings.getProperty("UseMpPercentageThreshold", "30"));
+            USE_HP_PERCENTAGE_THRESHOLD = Integer.parseInt(optionsSettings.getProperty("UseHpPercentageThreshold", "30"));
+            MP_POT_ITEM_ID = Integer.parseInt(optionsSettings.getProperty("MpPotItemId", "728"));
+            HP_POT_ITEM_ID = Integer.parseInt(optionsSettings.getProperty("HpPotItemId", "1539"));
+            HP_POT_SKILL_ID = Integer.parseInt(optionsSettings.getProperty("HpPotSkillId", "2037"));
+
+            ATTACK_SLOTS = getIntArray(optionsSettings, "AttackSlots", new Integer[] { 0, 1, 2, 3 });
+            CHANCE_SLOTS = getIntArray(optionsSettings, "ChanceSlots", new Integer[] { 4, 5 });
+            SELF_SLOTS = getIntArray(optionsSettings, "ChanceSlots", new Integer[] { 6, 7, 8, 9 });
+            LOW_LIFE_SLOTS = getIntArray(optionsSettings, "ChanceSlots", new Integer[] { 10, 11 });
         } catch (Exception e) {
             e.printStackTrace();
             throw new Error("Failed to Load " + OPTIONS_FILE + " File.");
         }
+    }
+
+    private static Integer[] getIntArray(Properties prop, String name, Integer[] _default)
+    {
+        String s = prop.getProperty(name.trim());
+        return s == null ? _default : parseCommaSeparatedIntegerArray(s.trim());
+    }
+
+    public static final String defaultDelimiter = "[\\s,;:]+";
+
+    public static Integer[] parseCommaSeparatedIntegerArray(String s)
+    {
+        if(s.isEmpty())
+            return new Integer[] {};
+        String[] values = s.split(defaultDelimiter);
+        Integer[] val = new Integer[values.length];
+        for(int i = 0; i < val.length; i++)
+            val[i] = Integer.parseInt(values[i]);
+        return val;
     }
 
     public static void loadFiltersConfig() {
@@ -3867,14 +3917,14 @@ public final class Config {
             ENCHANT_CHANCE_ARMOR_CRYSTAL = Integer.parseInt(enchSettings.getProperty("EnchantChanceArmorCrystal", "100"));
             ENCHANT_CHANCE_JEWELRY_CRYSTAL = Integer.parseInt(enchSettings.getProperty("EnchantChanceJewelryCrystal", "100"));
             /**
-             * переделка заточки*
+             * ��������� �������*
              */
-            ENCHANT_CHANCE_NEXT = Integer.parseInt(enchSettings.getProperty("EnchantXX", "15")); //переломный момент в шансах заточки
-            ENCHANT_FAILED_NUM = Integer.parseInt(enchSettings.getProperty("EnchantFailed", "0")); //при неудаче сброс заточки на это значение
-            MAGIC_CHANCE_BEFORE_NEXT = Float.parseFloat(enchSettings.getProperty("MagicEnchantSuccesRateBeforeXX", "25.0")); //шанс на заточку магического оружия до ENCHANT_CHANCE_NEXT
-            MAGIC_CHANCE_AFTER_NEXT = Float.parseFloat(enchSettings.getProperty("MagicEnchantSuccesRateAfterXX", "35.0")); //шанс на заточку магического оружия после ENCHANT_CHANCE_NEXT включительно
-            WEAPON_CHANCE_BEFORE_NEXT = Float.parseFloat(enchSettings.getProperty("WeaponEnchantSuccesRateBeforeXX", "30.0")); //шанс на заточку оружия до ENCHANT_CHANCE_NEXT
-            WEAPON_CHANCE_AFTER_NEXT = Float.parseFloat(enchSettings.getProperty("WeaponEnchantSuccesRateAfterXX", "30.0")); //шанс на заточку оружия после ENCHANT_CHANCE_NEXT включительно
+            ENCHANT_CHANCE_NEXT = Integer.parseInt(enchSettings.getProperty("EnchantXX", "15")); //���������� ������ � ������ �������
+            ENCHANT_FAILED_NUM = Integer.parseInt(enchSettings.getProperty("EnchantFailed", "0")); //��� ������� ����� ������� �� ��� ��������
+            MAGIC_CHANCE_BEFORE_NEXT = Float.parseFloat(enchSettings.getProperty("MagicEnchantSuccesRateBeforeXX", "25.0")); //���� �� ������� ����������� ������ �� ENCHANT_CHANCE_NEXT
+            MAGIC_CHANCE_AFTER_NEXT = Float.parseFloat(enchSettings.getProperty("MagicEnchantSuccesRateAfterXX", "35.0")); //���� �� ������� ����������� ������ ����� ENCHANT_CHANCE_NEXT ������������
+            WEAPON_CHANCE_BEFORE_NEXT = Float.parseFloat(enchSettings.getProperty("WeaponEnchantSuccesRateBeforeXX", "30.0")); //���� �� ������� ������ �� ENCHANT_CHANCE_NEXT
+            WEAPON_CHANCE_AFTER_NEXT = Float.parseFloat(enchSettings.getProperty("WeaponEnchantSuccesRateAfterXX", "30.0")); //���� �� ������� ������ ����� ENCHANT_CHANCE_NEXT ������������
 
             String[] ArmEncTable = enchSettings.getProperty("ArmorEnchantTable", "").split(";");
             for (String aet : ArmEncTable) {
@@ -3914,7 +3964,7 @@ public final class Config {
             ENCHANT_HERO_WEAPONS = Boolean.valueOf(enchSettings.getProperty("EnchHeroWeapons", "False"));
             EAT_ENCH_SCROLLS = Boolean.valueOf(enchSettings.getProperty("EatEnchScrolls", "True"));
 
-            // альтернативный пакет
+            // �������������� �����
             ENCHANT_ALT_PACKET = true;//Boolean.valueOf(enchSettings.getProperty("AltEnchantPacket", "True"));
             if (ENCHANT_ALT_PACKET) {
                 ENCHANT_ALT_MAGICCAHNCE = Integer.parseInt(enchSettings.getProperty("EnchantAltMagicChance", "65"));
@@ -3983,12 +4033,12 @@ public final class Config {
                 }
             }
             ENCHANT_ALT_FORMULA = Boolean.valueOf(enchSettings.getProperty("AltEnchantFormula", "False"));
-            //антиклик
+            //��������
             ENCH_ANTI_CLICK = Boolean.parseBoolean(enchSettings.getProperty("AntiClick", "False"));
             ENCH_ANTI_CLICK_STEP = Integer.parseInt(enchSettings.getProperty("AntiClickStep", "10"));
             ENCH_ANTI_CLICK_TYPE = Integer.parseInt(enchSettings.getProperty("AntiClickType", "0"));
             ENCH_ANTI_CLICK_STEP *= 2;
-            //предел заточки конкретных шмоток
+            //������ ������� ���������� ������
             propertySplit = enchSettings.getProperty("EnchantLimits", "0,0").split(";");
             for (String augs : propertySplit) {
                 String[] aug = augs.split(",");
@@ -4000,24 +4050,24 @@ public final class Config {
                     }
                 }
             }
-            // заточка пух у нпц
-            //// нпц
+            // ������� ��� � ���
+            //// ���
             ENCH_NPC_CAHNCE = Integer.parseInt(enchSettings.getProperty("NpcEnchantChance", "0"));
             propertySplit = enchSettings.getProperty("NpcEnchantMinMax", "0,14").split(",");
             ENCH_NPC_MINMAX = new PvpColor(Integer.parseInt(propertySplit[0]), Integer.parseInt(propertySplit[1]));
-            //// монстры
+            //// �������
             ENCH_MONSTER_CAHNCE = Integer.parseInt(enchSettings.getProperty("MonsterEnchantChance", "0"));
             propertySplit = enchSettings.getProperty("MonsterEnchantMinMax", "0,14").split(",");
             ENCH_MONSTER_MINMAX = new PvpColor(Integer.parseInt(propertySplit[0]), Integer.parseInt(propertySplit[1]));
-            //// гварды
+            //// ������
             ENCH_GUARD_CAHNCE = Integer.parseInt(enchSettings.getProperty("GuardEnchantChance", "0"));
             propertySplit = enchSettings.getProperty("GuardEnchantMinMax", "0,14").split(",");
             ENCH_GUARD_MINMAX = new PvpColor(Integer.parseInt(propertySplit[0]), Integer.parseInt(propertySplit[1]));
 
-            //стековые точки
+            //�������� �����
             ENCH_STACK_SCROLLS = Boolean.parseBoolean(enchSettings.getProperty("StackableScrolls", "False"));
 
-            // шаг заточки
+            // ��� �������
             ENCHANT_ALT_STEP = Integer.parseInt(enchSettings.getProperty("AltEnchantStep", "1"));
             //
             propertySplit = enchSettings.getProperty("BlessBonusScrolls1", "15000,15001,15002,15003,15004,15005,15006,15007,15008,15009").split(",");
@@ -4349,7 +4399,7 @@ public final class Config {
             PREMIUM_PKDROP_OFF = Boolean.parseBoolean(serviseSet.getProperty("PremiumDisablePkDrop", "False"));
 
             PREMIUM_ANOOUNCE = Boolean.parseBoolean(serviseSet.getProperty("PremiumAnnounceEnter", "False"));
-            PREMIUM_ANNOUNCE_PHRASE = serviseSet.getProperty("PremiumAnnouncePhrase", "Игрок %player% вошел в игру.");
+            PREMIUM_ANNOUNCE_PHRASE = serviseSet.getProperty("PremiumAnnouncePhrase", "����� %player% ����� � ����.");
 
             PREMIUM_ENCHANT_FAIL = Boolean.parseBoolean(serviseSet.getProperty("PremiumAltEnchantFail", "False"));
 
@@ -4514,9 +4564,14 @@ public final class Config {
 
     public static void loadEventsCfg() {
         TVT_EVENT_REWARDS.clear();
+        TVT_EVENT_REWARDS_TIE.clear();
+        TVT_EVENT_REWARDS_LOOSER.clear();
 		TVT_EVENT_REWARDS_PREMIUM.clear();
 		TVT_EVENT_REWARDS_PREM.clear();
         TVT_EVENT_REWARDS_TOP.clear();
+        TVT_EVENT_REWARDS_TOP_PREMIUM.clear();
+        TVT_EVENT_REWARDS_LOOSER_TOP.clear();
+        TVT_EVENT_REWARDS_PREMIUM.clear();
         TVT_EVENT_DOOR_IDS.clear();
         TVT_WHITE_POTINS.clear();
         OS_REWARDS.clear();
@@ -4698,6 +4753,23 @@ public final class Config {
                     }
                 }
 
+                propertySplit = eventsSettings.getProperty("TvTEventRewardTie", "57,100000").split(";");
+                for (String reward : propertySplit) {
+                    String[] rewardSplit = reward.split(",");
+
+                    if (rewardSplit.length != 2) {
+                        System.out.println("TvTEventEngine[Config.load()]: invalid config property -> TvTEventRewardTie \"" + reward + "\"");
+                    } else {
+                        try {
+                            TVT_EVENT_REWARDS_TIE.add(new int[]{Integer.valueOf(rewardSplit[0]), Integer.valueOf(rewardSplit[1])});
+                        } catch (NumberFormatException nfe) {
+                            if (!reward.equals("")) {
+                                System.out.println("TvTEventEngine[Config.load()]: invalid config property -> TvTEventRewardTie \"" + reward + "\"");
+                            }
+                        }
+                    }
+                }
+
 				propertySplit = eventsSettings.getProperty("TvTEventRewardPremium", "57,100000").split(";");
 				for (String reward : propertySplit) {
 					String[] rewardSplit = reward.split(",");
@@ -4753,6 +4825,28 @@ public final class Config {
                     }
                 }
 
+                propertySplit = eventsSettings.getProperty("TvTEventRewardTopPremium", "57,100000").split(";");
+                for (String reward : propertySplit)
+                {
+                    String[] rewardSplit = reward.split(",");
+                    if (rewardSplit.length != 2) {
+                        System.out.println("TvTEventEngine[Config.load()]: invalid config property -> TvTEventRewardTop \"" + reward + "\"");
+                    } else {
+                        try
+                        {
+                            TVT_EVENT_REWARDS_TOP_PREMIUM.add(new int[]{Integer.valueOf(rewardSplit[0]), Integer.valueOf(rewardSplit[1])});
+                        }
+                        catch (NumberFormatException nfe)
+                        {
+                            if (!reward.equals("")) {
+                                System.out.println("TvTEventEngine[Config.load()]: invalid config property -> TvTEventRewardTop \"" + reward + "\"");
+                            }
+                        }
+                    }
+                }
+
+                TVT_MIN_KILLS_FOR_REWARDS = Integer.parseInt(eventsSettings.getProperty("TvTMinKillsForRewards", "2"));
+                TVT_MIN_KILLS_TIE_FOR_REWARDS = Integer.parseInt(eventsSettings.getProperty("TvTMinKillsTieForRewards", "2"));
 				TVT_REWARD_LOOSER = Integer.parseInt(eventsSettings.getProperty("TvTEventRewardLoosers", "0"));
 				propertySplit = eventsSettings.getProperty("TvTEventRewardLoosersList", "57,100000").split(";");
 				for (String reward : propertySplit) {
@@ -4770,6 +4864,27 @@ public final class Config {
 						}
 					}
 				}
+
+                TVT_REWARD_TOP_LOOSER = Integer.parseInt(eventsSettings.getProperty("TvtTopLoosers", "0"));
+                propertySplit = eventsSettings.getProperty("TvtTopLoosersReward", "57,100000").split(";");
+                for (String reward : propertySplit)
+                {
+                    String[] rewardSplit = reward.split(",");
+                    if (rewardSplit.length != 2) {
+                        System.out.println("TvTEventEngine[Config.load()]: invalid config property -> TvtTopLoosersReward \"" + reward + "\"");
+                    } else {
+                        try
+                        {
+                            TVT_EVENT_REWARDS_LOOSER_TOP.add(new int[]{Integer.valueOf(rewardSplit[0]), Integer.valueOf(rewardSplit[1])});
+                        }
+                        catch (NumberFormatException nfe)
+                        {
+                            if (!reward.equals("")) {
+                                System.out.println("TvTEventEngine[Config.load()]: invalid config property -> TvtTopLoosersReward \"" + reward + "\"");
+                            }
+                        }
+                    }
+                }
 
                 TVT_EVENT_TARGET_TEAM_MEMBERS_ALLOWED = Boolean.parseBoolean(eventsSettings.getProperty("TvTEventTargetTeamMembersAllowed", "true"));
                 TVT_EVENT_POTIONS_ALLOWED = Boolean.parseBoolean(eventsSettings.getProperty("TvTEventPotionsAllowed", "false"));
@@ -4826,11 +4941,13 @@ public final class Config {
 				TVT_SAVE_BUFFS_TIME = Boolean.parseBoolean(eventsSettings.getProperty("TvTStoreBuffsTime", "False"));
 				TVT_CUSTOM_ITEMS = Boolean.parseBoolean(eventsSettings.getProperty("TvTCustomItems", "False"));
 				TVT_CUSTOM_ENCHANT = Integer.parseInt(eventsSettings.getProperty("TvTCustomItemsEnchant", "0"));
+                TVT_EVENT_KILLS_OVERLAY = Integer.parseInt(eventsSettings.getProperty("TvTEventKillsOverlay", "15"));
 			}
 
             TVT_NO_PASSIVE = Boolean.parseBoolean(eventsSettings.getProperty("TvTNoPassive", "False"));
             TVT_REWARD_CHECK = Boolean.parseBoolean(eventsSettings.getProperty("TvTRewardCheck", "False"));
             TVT_REWARD_TOP = Boolean.parseBoolean(eventsSettings.getProperty("TvTRewardTop", "False"));
+            TVT_REWARD_TOP_COUNT = Integer.parseInt(eventsSettings.getProperty("TvTRewardTopCount", "3"));
             TVT_TEAM_PROTECT = Boolean.parseBoolean(eventsSettings.getProperty("TvTTeamProtect", "False"));
             TVT_NO_DEADS = Boolean.parseBoolean(eventsSettings.getProperty("TvTNoDeads", "False"));
             TVT_TELE_PROTECT = (int) TimeUnit.SECONDS.toMillis(Integer.parseInt(eventsSettings.getProperty("TvTTeleProtect", "0")));
@@ -4904,7 +5021,7 @@ public final class Config {
 
             propertySplit = eventsSettings.getProperty("LhRegNpcLoc", "83101,148396,-3407").split(",");
             ELH_NPCLOC = new Location(Integer.parseInt(propertySplit[0]), Integer.parseInt(propertySplit[1]), Integer.parseInt(propertySplit[2]));
-            ELH_NPCTOWN = eventsSettings.getProperty("LhRegNpcTown", "Гиране");
+            ELH_NPCTOWN = eventsSettings.getProperty("LhRegNpcTown", "������");
 
             propertySplit = eventsSettings.getProperty("LhBattleLoc", "83101,148396,-3407").split(",");
             ELH_TPLOC = new Location(Integer.parseInt(propertySplit[0]), Integer.parseInt(propertySplit[1]), Integer.parseInt(propertySplit[2]));
@@ -4991,7 +5108,7 @@ public final class Config {
 
             propertySplit = eventsSettings.getProperty("CbRegNpcLoc", "83101,148396,-3407").split(",");
             EBC_NPCLOC = new Location(Integer.parseInt(propertySplit[0]), Integer.parseInt(propertySplit[1]), Integer.parseInt(propertySplit[2]));
-			EBC_NPCTOWN = eventsSettings.getProperty("CbRegNpcTown", "Гиране");
+			EBC_NPCTOWN = eventsSettings.getProperty("CbRegNpcTown", "������");
 
 			EBC_BASE1ID = Integer.parseInt(eventsSettings.getProperty("CbBase1Id", "80050"));
 			EBC_BASE2ID = Integer.parseInt(eventsSettings.getProperty("CbBase2Id", "80051"));
@@ -5115,7 +5232,7 @@ public final class Config {
 
             propertySplit = eventsSettings.getProperty("EncRegNpcLoc", "83101,148396,-3407").split(",");
             EENC_NPCLOC = new Location(Integer.parseInt(propertySplit[0]), Integer.parseInt(propertySplit[1]), Integer.parseInt(propertySplit[2]));
-            EENC_NPCTOWN = eventsSettings.getProperty("EncRegNpcTown", "Гиране");
+            EENC_NPCTOWN = eventsSettings.getProperty("EncRegNpcTown", "������");
 
             propertySplit = eventsSettings.getProperty("EncBattleLoc", "83101,148396,-3407").split(",");
             EENC_TPLOC = new Location(Integer.parseInt(propertySplit[0]), Integer.parseInt(propertySplit[1]), Integer.parseInt(propertySplit[2]));
@@ -5538,6 +5655,7 @@ public final class Config {
     }
 
     public static void loadAltSettingCfg() {
+        SIEGE_CASTLE_CRP.clear();
         ALT_HERO_REWARDS.clear();
         OLY_FIGHTER_BUFFS.clear();
         OLY_MAGE_BUFFS.clear();
@@ -5604,8 +5722,25 @@ public final class Config {
             ALT_CLAN_REP_MUL = Float.parseFloat(altSettings.getProperty("AltClanReputationRate", "1.0"));
             ALT_CLAN_CREATE_LEVEL = Integer.parseInt(altSettings.getProperty("AltClanCreateLevel", "1"));
             ALT_CLAN_REP_WAR = Integer.parseInt(altSettings.getProperty("AltClanReputationKillBonus", "2"));
+            ALT_CLAN_REP_HERO = Integer.parseInt(altSettings.getProperty("AltClanReputationForHero", "200"));
+            //
+            String[] propertySplit = altSettings.getProperty("SiegeCastleCRP", "").split(";");
+            for (String augs : propertySplit) {
+                String[] aug = augs.split(",");
+                try
+                {
+                    SIEGE_CASTLE_CRP.put(Integer.parseInt(aug[0]), Integer.parseInt(aug[1]));
+                }
+                catch (NumberFormatException nfe)
+                {
+                    if (!aug[0].equals("")) {
+                        System.out.println("custom.cfg: SiegeCastleCRP error: " + aug[0]);
+                    }
+                }
+            }
 			CLAN_REP_KILL_NOTICE = Boolean.parseBoolean(altSettings.getProperty("AltClanRepKillMessage", "False"));
 			CLAN_REP_KILL_UPDATE = Boolean.parseBoolean(altSettings.getProperty("AltClanRepKillUpdate", "False"));
+            UPDATE_CRP_AFTER_SET_FLAG = Boolean.parseBoolean(altSettings.getProperty("UpdateCrpAfterSetFlag", "False"));
 
             CASTLE_SHIELD = Boolean.parseBoolean(altSettings.getProperty("CastleShieldRestriction", "True"));
             CLANHALL_SHIELD = Boolean.parseBoolean(altSettings.getProperty("ClanHallShieldRestriction", "True"));
@@ -5642,7 +5777,7 @@ public final class Config {
             RESET_OLY_ENCH = Boolean.parseBoolean(altSettings.getProperty("AltOlyResetEnchant", "False"));
             OLY_ANTI_BUFF = Boolean.parseBoolean(altSettings.getProperty("AltOlyAntiBuff", "True"));
 
-            String[] propertySplit = altSettings.getProperty("AltOlyFighterBuff", "1204,2;1086,1").split(";");
+            propertySplit = altSettings.getProperty("AltOlyFighterBuff", "1204,2;1086,1").split(";");
             for (String augs : propertySplit) {
                 String[] aug = augs.split(",");
                 try {
@@ -5755,7 +5890,7 @@ public final class Config {
             MAX_HENNA_BONUS = Integer.parseInt(altSettings.getProperty("MaxHennaBonus", "5"));
             ALT_ANY_SUBCLASS = Boolean.parseBoolean(altSettings.getProperty("AltAnySubClass", "False"));
             ALT_ANY_SUBCLASS_OVERCRAF = Boolean.parseBoolean(altSettings.getProperty("AltAnySubClassOverCraft", "False"));
-            ALT_SUBCLASS_PHOENIX = Boolean.parseBoolean(altSettings.getProperty("AltSubClassPhoenix", "False"));
+            SUBS_3RD_PROFF = Boolean.parseBoolean(altSettings.getProperty("Subs3rdProff", "False"));
             ALT_AUGMENT_HERO = Boolean.parseBoolean(altSettings.getProperty("AltAugmentHeroWeapons", "False"));
             //
             WEDDING_ANSWER_TIME = Integer.parseInt(altSettings.getProperty("WeddingAnswerTime", "0"));
@@ -5989,6 +6124,7 @@ public final class Config {
         PREMIUM_MOBS_LIST.clear();
         SUPER_MOBS.clear();
         MOB_FIXED_DAMAGE_LIST.clear();
+        NPCS_DOWN_ABSORB.clear();
         try {
             Properties npc_conf = new Properties();
             InputStream is = new FileInputStream(new File(NPC_CONFIG_FILE));
@@ -6060,6 +6196,19 @@ public final class Config {
                     }
                 }
             }
+
+            propertySplit = npc_conf.getProperty("NpcsDownAbsorb", "29028,2000;29019,2000").split(";");
+            for (String augs : propertySplit) {
+                String[] aug = augs.split(",");
+                try {
+                    NPCS_DOWN_ABSORB.put(Integer.parseInt(aug[0]), Integer.parseInt(aug[1]));
+                } catch (NumberFormatException nfe) {
+                    if (!aug[0].equals("")) {
+                        System.out.println("npc.cfg: NpcsDownAbsorb error: " + aug[0]);
+                    }
+                }
+            }
+
 
             RAID_CLANPOINTS_REWARD = Integer.parseInt(npc_conf.getProperty("BossClanPointsReward", "0"));
             EPIC_CLANPOINTS_REWARD = Integer.parseInt(npc_conf.getProperty("EpicClanPointsReward", "0"));
@@ -6254,6 +6403,7 @@ public final class Config {
 		ALT_FIXED_HIT_TIME.clear();
 		ALT_FIXED_HIT_TIME_OLY.clear();
         PROTECTED_BUFFS.clear();
+        SKILL_LIST_IS_SELF_DISPEL.clear();
         CASTLE_SIEGE_SKILLS.clear();
         HIPPY_ITEMS.clear();
         FORB_CURSED_SKILLS.clear();
@@ -6656,7 +6806,9 @@ public final class Config {
                     }
                 }
             }
+
             //
+            ENABLE_STATIC_REUSE = Boolean.parseBoolean(customSettings.getProperty("EnableStaticReuse", "False"));
             propertySplit = customSettings.getProperty("FixedReuseSkills", "").trim().split(",");
             for (String itemid : propertySplit) {
                 try {
@@ -6667,7 +6819,8 @@ public final class Config {
                     }
                 }
             }
-			propertySplit = customSettings.getProperty("FixedHitTimeSkill", "").split(";");
+            ENABLE_STATIC_HIT_TIME = Boolean.parseBoolean(customSettings.getProperty("EnableStaticHitTime", "False"));
+            propertySplit = customSettings.getProperty("FixedHitTimeSkill", "").split(";");
 			for (String augs : propertySplit) {
 				if (augs.equals("")) {
 					break;
@@ -6706,6 +6859,16 @@ public final class Config {
                 } catch (NumberFormatException nfe) {
                     if (!itemid.equals("")) {
                         System.out.println("custom.cfg: CancelProtectedBuffs error: " + itemid);
+                    }
+                }
+            }//
+            propertySplit = customSettings.getProperty("SkillListIsSelfDispel", "").trim().split(",");
+            for (String skillId : propertySplit) {
+                try {
+                    SKILL_LIST_IS_SELF_DISPEL.add(Integer.valueOf(skillId));
+                } catch (NumberFormatException nfe) {
+                    if (!skillId.equals("")) {
+                        System.out.println("custom.cfg: SkillListIsSelfDispel error: " + skillId);
                     }
                 }
             }
@@ -6761,6 +6924,7 @@ public final class Config {
             MOB_DEBUFF_CHANCE = Integer.parseInt(customSettings.getProperty("MonsterDebuffChance", "60"));
             //
             EVERYBODE_HERO = Boolean.parseBoolean(customSettings.getProperty("EverybodyHero", "False"));
+            DESTROY_HERO_ITEM_AFTER_END_HERO = Boolean.parseBoolean(customSettings.getProperty("DestroyHeroItemAfterEndHero", "False"));
             //
             ALLOW_PC_NPC = Boolean.parseBoolean(customSettings.getProperty("AllowPcNpc", "False"));
             //
@@ -6791,6 +6955,8 @@ public final class Config {
 			HWID_SPAM_CHECK = Boolean.parseBoolean(customSettings.getProperty("HWIDSpamCheck", "False"));
 
 			EARTHQUAKE_OLY = Boolean.parseBoolean(customSettings.getProperty("EarthquakeOlyPrepare", "True"));
+            ENABLE_FAKE_ITEMS_MOD = Boolean.parseBoolean(customSettings.getProperty("EnableFakeItemsMod", "False"));
+            ENABLE_BALANCE_SYSTEM = Boolean.parseBoolean(customSettings.getProperty("EnableBalanceSystem", "False"));
 
 			ITEM_COUNT_LIMIT = Boolean.parseBoolean(customSettings.getProperty("ItemCountLimit", "False"));
 			ITEM_COUNT_LIMIT_WARN = Boolean.parseBoolean(customSettings.getProperty("ItemCountLimitWarning", "False"));
@@ -6802,7 +6968,7 @@ public final class Config {
 				}
 				catch (NumberFormatException nfe) {
 					if (!aug[0].equals("")) {
-						System.out.println("services.cfg: ItemCountLimit error: " + aug[0]);
+						System.out.println("custom.cfg: ItemCountLimit error: " + aug[0]);
 					}
 				}
 			}
@@ -6986,7 +7152,7 @@ public final class Config {
                 for (String augs : propertySplit) {
                     String[] aug = augs.split(",");
                     try {
-                        //10-20,Новичек,8001,1
+                        //10-20,�������,8001,1
                         String[] minmax = aug[0].split("-");
                         int min = Integer.parseInt(minmax[0]);
                         int max = Integer.parseInt(minmax[1]);
@@ -7255,27 +7421,6 @@ public final class Config {
         }
     }
 
-    public static void loadGameGuardCfg() {
-        try {
-            Properties guard = new Properties();
-            InputStream is = new FileInputStream(new File(GAME_GUARD_FILE));
-            guard.load(is);
-            is.close();
-
-            GAMEGUARD_ENABLED = Boolean.parseBoolean(guard.getProperty("GameGuardEnable", "False"));
-            GAMEGUARD_INTERVAL = (int) TimeUnit.SECONDS.toMillis(Integer.parseInt(guard.getProperty("GameGuardInterval", "60")));
-
-            GAMEGUARD_LOG = Boolean.parseBoolean(guard.getProperty("GameGuardLog", "False"));
-            GAMEGUARD_PUNISH = Integer.parseInt(guard.getProperty("GameGuardPunish", "1"));
-
-            GAMEGUARD_KEY = Integer.parseInt("FFAAFF", 16) << 8;
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new Error("Failed to Load " + FAKE_FILE + " File.");
-        }
-    }
-
     public static void loadHexidCfg() {
         InputStream is = null;
         try {
@@ -7318,13 +7463,9 @@ public final class Config {
             loadCommandsCfg();
             loadGeoDataCfg();
             loadFakeCfg();
-            loadGameGuardCfg();
 
             loadFiltersConfig();
 
-            if (!reload) {
-                loadCatsGuardCfg();
-            }
             loadHexidCfg();
             //}
         } else {

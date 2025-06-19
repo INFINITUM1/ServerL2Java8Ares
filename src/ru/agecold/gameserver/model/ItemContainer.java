@@ -13,6 +13,7 @@ import ru.agecold.gameserver.GameTimeController;
 import ru.agecold.gameserver.datatables.ItemTable;
 import ru.agecold.gameserver.model.L2ItemInstance.ItemLocation;
 import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
+import ru.agecold.gameserver.templates.L2EtcItemType;
 import ru.agecold.gameserver.templates.L2Item;
 import ru.agecold.mysql.Close;
 import ru.agecold.mysql.Connect;
@@ -30,7 +31,7 @@ public abstract class ItemContainer {
         _items = new ConcurrentLinkedQueue<L2ItemInstance>();
     }
 
-    protected abstract L2Character getOwner();
+    public abstract L2Character getOwner();
 
     protected abstract ItemLocation getBaseLocation();
 
@@ -61,11 +62,11 @@ public abstract class ItemContainer {
         return _items.toArray(new L2ItemInstance[_items.size()]);
     }
 
-    // Коллекция
+    // ���������
     public ConcurrentLinkedQueue<L2ItemInstance> getAllItems() {
         return _items;
     }
-    // Шмотки, которые возможно заточить
+    // ������, ������� �������� ��������
 
     public FastTable<L2ItemInstance> getAllItemsEnch() {
         if (getSize() == 0) {
@@ -89,7 +90,7 @@ public abstract class ItemContainer {
         return enchs;
     }
 
-    // Шмотки, которые возможно аугментировать
+    // ������, ������� �������� ��������������
     public FastTable<L2ItemInstance> getAllItemsAug() {
         if (getSize() == 0) {
             return null;
@@ -107,7 +108,7 @@ public abstract class ItemContainer {
         }
         return enchs;
     }
-    // куда пихаем аугмент
+    // ���� ������ �������
 
     public FastTable<L2ItemInstance> getAllItemsNext(int exc, int service) {
         if (getSize() == 0) {
@@ -121,8 +122,14 @@ public abstract class ItemContainer {
                 continue;
             }
 
-            if (!(item.canBeEnchanted())) {
-                continue;
+            if (service == 1) {
+                if (!(item.canBeAugmented())) {
+                    continue;
+                }
+            } else if (service == 2) {
+                if (!(item.canBeEnchanted())) {
+                    continue;
+                }
             }
 
             if (exc == item.getObjectId()) {
@@ -132,7 +139,7 @@ public abstract class ItemContainer {
             itemType = item.getItem().getType2();
             switch (service) {
                 case 1:
-                    if (itemType == L2Item.TYPE2_WEAPON && !item.isAugmented() && !item.isWear() && !item.isEquipped() && !item.isHeroItem() && item.isDestroyable()) {
+                    if (itemType == L2Item.TYPE2_WEAPON && !item.isAugmented() && !item.isWear()) {
                         enchs.add(item);
                     }
                     break;
@@ -708,8 +715,23 @@ public abstract class ItemContainer {
         }
     }
 
+    public boolean validateCapacity(L2ItemInstance item)
+    {
+        int slots = 0;
+
+        if (!(item.isStackable() && getItemByItemId(item.getItemId()) != null) && item.getItemType() != L2EtcItemType.HERB)
+            slots++;
+
+        return validateCapacity(slots);
+    }
+
     public boolean validateCapacity(int slots) {
         return true;
+    }
+
+    public boolean validateWeight(L2ItemInstance item, int count)
+    {
+        return validateWeight(count * item.getItem().getWeight());
     }
 
     public boolean validateWeight(int weight) {

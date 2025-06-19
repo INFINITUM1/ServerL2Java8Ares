@@ -292,17 +292,17 @@ public class OlympiadDatabase {
             Calendar currentTime2 = Calendar.getInstance();
             int daysToChange = getDaysToPeriodChange(currentTime2);
             if (daysToChange == 7) {
-                if (currentTime2.get(Calendar.HOUR_OF_DAY) < 12) {
+                if (currentTime2.get(Calendar.HOUR_OF_DAY) < 5) {
                     daysToChange = 0;
                 }
-                else if (currentTime2.get(Calendar.HOUR_OF_DAY) == 12 && currentTime2.get(Calendar.MINUTE) < 0) {
+                else if (currentTime2.get(Calendar.HOUR_OF_DAY) == 5 && currentTime2.get(Calendar.MINUTE) < 0) {
                     daysToChange = 0;
                 }
             }
             if (daysToChange > 0) {
                 currentTime2.add(Calendar.DAY_OF_MONTH, daysToChange);
             }
-            currentTime2.set(Calendar.HOUR_OF_DAY, 12);
+            currentTime2.set(Calendar.HOUR_OF_DAY, 5);
             currentTime2.set(Calendar.MINUTE, 0);
             currentTime2.set(Calendar.SECOND, 0);
             Olympiad._olympiadEnd = currentTime2.getTimeInMillis();

@@ -3491,29 +3491,29 @@ public enum SystemMessageId {
      * after closing unnecessary programs.
      */
     HACKING_TOOL(769),
-    //Ваша сила достигла максимума.
+    //���� ���� �������� ���������.
     YOUR_FORCE_IS_MAX(1196),
     /**
      * ID: 781<br> Message: Observers cannot participate.
      */
     OBSERVERS_CANNOT_PARTICIPATE(781),
-    //Пожалуйста, подождите немного.
+    //����������, ��������� �������.
     PLEASE_WAIT(2031),
-    //Произошла ошибка
+    //��������� ������
     OOPS_ERROR(2014),
-    //$s1 было добавлено.
+    //$s1 ���� ���������.
     S1_HAS_BEEN_ADDED(851),
     //1904
     CANT_CHANGE_SUB_SUMMON(1904),
     //360
     SIEGE_END_FOR_S1_SECONDS(360),
-    // Канал команды создан.
+    // ����� ������� ������.
     THE_COMMAND_CHANNEL_HAS_BEEN_FORMED(1580),
-    // Канал команды расформирован.
+    // ����� ������� �������������.
     THE_COMMAND_CHANNEL_HAS_BEEN_DISBANDED(1581),
-    // Вы теперь блокируете все.
+    // �� ������ ���������� ���.
     YOU_ARE_NOW_BLOCKING_EVERYTHING(961),
-    // Вы больше не блокируете все.
+    // �� ������ �� ���������� ���.
     YOU_ARE_NO_LONGER_BLOCKING_EVERYTHING(962),
     //A skill is ready to be used again
     SKILL_READY_TO_USE_AGAIN(2015),
@@ -3528,7 +3528,14 @@ public enum SystemMessageId {
     //No packages have arrived
     PACKAGE_SEND_ERROR(694),
     //You failed at sending the package because you are too far from the warehouse.
-    PACKAGE_SEND_ERROR_TOO_FAR(763);
+    PACKAGE_SEND_ERROR_TOO_FAR(763),
+    YOUR_PET_CANNOT_CARRY_ANY_MORE_ITEMS(545),
+    UNABLE_TO_PLACE_ITEM_YOUR_PET_IS_TOO_ENCUMBERED(546),
+    PET_PUT_ON_S1(1024),
+    PET_TOOK_OFF_S1(1025),
+    ITEMS_UNAVAILABLE_FOR_STORE_MANUFACTURE(1578),
+    CANNOT_USE_QUEST_ITEMS(148),
+    S1(1983);
     private int _id;
 
     private SystemMessageId(int id) {

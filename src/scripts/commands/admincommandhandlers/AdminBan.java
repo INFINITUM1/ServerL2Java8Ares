@@ -18,25 +18,32 @@
  */
 package scripts.commands.admincommandhandlers;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 
 import ru.agecold.Config;
 import ru.agecold.L2DatabaseFactory;
 import ru.agecold.gameserver.LoginServerThread;
+import ru.agecold.gameserver.instancemanager.PlayerManager;
 import ru.agecold.gameserver.model.GMAudit;
 import ru.agecold.gameserver.model.L2Object;
 import ru.agecold.gameserver.model.L2World;
 import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
 import ru.agecold.gameserver.model.entity.olympiad.Olympiad;
+import ru.agecold.gameserver.network.L2GameClient;
 import ru.agecold.gameserver.network.SystemMessageId;
+import ru.agecold.gameserver.network.gameserverpackets.ChangeAccessLevel;
 import ru.agecold.gameserver.network.serverpackets.SystemMessage;
+import ru.agecold.gameserver.util.AutoBan;
+import ru.agecold.mysql.Close;
 import ru.agecold.mysql.Connect;
-import ru.agecold.util.Log;
-import ru.agecold.gameserver.util.protection.catsguard.CatsGuard;
-import scripts.communitybbs.Manager.RegionBBSManager;
 import scripts.commands.IAdminCommandHandler;
 
 /**
@@ -50,7 +57,7 @@ import scripts.commands.IAdminCommandHandler;
  */
 public class AdminBan implements IAdminCommandHandler {
 
-    private static final String[] ADMIN_COMMANDS = {"admin_ban", "admin_unban", "admin_jail", "admin_unjail", "admin_hwidban"};
+    private static final String[] ADMIN_COMMANDS = {"admin_ban", "admin_unban", "admin_jail", "admin_unjail", "admin_unhban", "admin_isban", "admin_accsbanhwid", "admin_hban", "admin_hnban", "admin_hwidban" };
     private static final int REQUIRED_LEVEL = Config.GM_BAN;
 
     public boolean useAdminCommand(String command, L2PcInstance adm) {
@@ -60,15 +67,18 @@ public class AdminBan implements IAdminCommandHandler {
             }
         }
 
-        StringTokenizer st = new StringTokenizer(command);
-        st.nextToken();
         String account_name = "";
         String player = "";
         L2PcInstance plyr = null;
         if (command.startsWith("admin_ban")) {
             try {
-                player = st.nextToken();
-                plyr = L2World.getInstance().getPlayer(player);
+                StringTokenizer st = new StringTokenizer(command);
+                if(st.countTokens() > 1)
+                {
+                    st.nextToken();
+                    player = st.nextToken();
+                    plyr = L2World.getInstance().getPlayer(player);
+                }
             } catch (Exception e) {
                 L2Object target = adm.getTarget();
                 if (target != null && target.isPlayer()) {
@@ -93,9 +103,14 @@ public class AdminBan implements IAdminCommandHandler {
             }
         } else if (command.startsWith("admin_unban")) {
             try {
-                account_name = st.nextToken();
-                LoginServerThread.getInstance().sendAccessLevel(account_name, 0);
-                adm.sendAdmResultMessage("Unban request sent for account " + account_name + ". If you need a playername based commmand, see //unban_menu");
+                StringTokenizer st = new StringTokenizer(command);
+                if(st.countTokens() > 1)
+                {
+                    st.nextToken();
+                    account_name = st.nextToken();
+                    LoginServerThread.getInstance().sendAccessLevel(account_name, 0);
+                    adm.sendAdmResultMessage("Unban request sent for account " + account_name + ". If you need a playername based commmand, see //unban_menu");
+                }
             } catch (Exception e) {
                 adm.sendAdmResultMessage("Usage: //unban <account_name>");
                 if (Config.DEBUG) {
@@ -104,6 +119,8 @@ public class AdminBan implements IAdminCommandHandler {
             }
         } else if (command.startsWith("admin_jail")) {
             try {
+                StringTokenizer st = new StringTokenizer(command);
+                st.nextToken();
                 player = st.nextToken();
                 int delay = 0;
                 try {
@@ -128,6 +145,8 @@ public class AdminBan implements IAdminCommandHandler {
             }
         } else if (command.startsWith("admin_unjail")) {
             try {
+                StringTokenizer st = new StringTokenizer(command);
+                st.nextToken();
                 player = st.nextToken();
                 L2PcInstance playerObj = L2World.getInstance().getPlayer(player);
 
@@ -144,25 +163,328 @@ public class AdminBan implements IAdminCommandHandler {
                     e.printStackTrace();
                 }
             }
-        } else if (command.equalsIgnoreCase("admin_hwidban")) {
-            L2Object target = adm.getTarget();
-            if (target != null && target.isPlayer()) {
-                plyr = (L2PcInstance) target;
-            }
-
-            if (plyr != null && plyr.equals(adm)) {
-                plyr.sendPacket(SystemMessage.id(SystemMessageId.CANNOT_USE_ON_YOURSELF));
-            } else {
-                if (Config.CATS_GUARD) {
-                    CatsGuard.getInstance().ban(plyr);
-                } else {
-                    Log.banHWID(plyr.getHWID(), plyr.getIP(), plyr.getAccountName());
+        }
+        /*else if(command.startsWith("admin_unhban")) {
+            StringTokenizer st = new StringTokenizer(command);
+            if(st.countTokens() > 1)
+            {
+                st.nextToken();
+                String name = st.nextToken();
+                Connect con = null;
+                PreparedStatement statement = null;
+                ResultSet rset = null;
+                try
+                {
+                    con = L2DatabaseFactory.get();
+                    statement = con.prepareStatement("SELECT char_name,LastHWID FROM characters WHERE char_name=? LIMIT 1");
+                    statement.setString(1, name);
+                    rset = statement.executeQuery();
+                    if(rset.next())
+                    {
+                        name = rset.getString("char_name");
+                        String hwid = rset.getString("LastHWID");
+                        Close.SR(statement, rset);
+                        statement = con.prepareStatement("DELETE FROM hwid_bans WHERE HWID=? OR player=?");
+                        statement.setString(1, hwid);
+                        statement.setString(2, name);
+                        statement.execute();
+                        adm.sendAdmResultMessage("Deleted from hwid_bans: " + name + " HWID: " + hwid);
+                    }
+                    else
+                        adm.sendAdmResultMessage("Can't find char: " + name);
                 }
-                Olympiad.clearPoints(plyr.getObjectId());
-                plyr.logout();
-                adm.sendAdmResultMessage("HWID " + plyr.getHWID() + " banned.");
+                catch(Exception e)
+                {}
+                finally
+                {
+                    Close.CSR(con, statement, rset);
+                }
+            }
+        }*/
+        /*else if(command.startsWith("admin_isban"))
+        {
+            StringTokenizer st = new StringTokenizer(command);
+            if(st.countTokens() > 1)
+            {
+                String name = st.nextToken();
+                int id = PlayerManager.getObjectIdByName(name);
+                if(id <= 0)
+                {
+                    adm.sendAdmResultMessage("Player " + name + " not exist.");
+                    return false;
+                }
+                name = PlayerManager.getNameByObjectId(id);
+                Connect con = null;
+                PreparedStatement statement = null;
+                ResultSet rset = null;
+                String hwid = PlayerManager.getLastHWIDByName(name);
+                if(hwid.isEmpty())
+                    adm.sendAdmResultMessage("No hwid for char: " + name);
+                else
+                {
+                    try
+                    {
+                        con = L2DatabaseFactory.get();
+                        statement = con.prepareStatement("SELECT reason,end_date FROM hwid_bans WHERE HWID=? LIMIT 1");
+                        statement.setString(1, hwid);
+                        rset = statement.executeQuery();
+                        if(rset.next())
+                        {
+                            long time = rset.getLong("end_date");
+                            adm.sendAdmResultMessage(name + " banned by hwid." + (time > 0L ? "EndDate: " + TimeUtils.toSimpleFormat(time) : "") + " Reason: " + rset.getString("reason"));
+                        }
+                        else
+                            adm.sendAdmResultMessage("No hwid ban for char: " + name);
+                    }
+                    catch(Exception e)
+                    {}
+                    finally
+                    {
+                        Close.CSR(con, statement, rset);
+                    }
+                }
+                String account = PlayerManager.getAccNameByName(name);
+                try
+                {
+                    con = L2DatabaseFactory.getInstanceLogin().getConnection();
+                    statement = con.prepareStatement("SELECT access_level,last_ip FROM accounts WHERE login=? LIMIT 1");
+                    statement.setString(1, account);
+                    rset = statement.executeQuery();
+                    String lastIp = "";
+                    if(rset.next())
+                    {
+                        if(rset.getInt("access_level") < 0)
+                            adm.sendAdmResultMessage(name + " banned by account.");
+                        else
+                            adm.sendAdmResultMessage("No account ban for char: " + name);
+                        lastIp = rset.getString("last_ip");
+                    }
+                    if(!lastIp.isEmpty())
+                    {
+                        Close.SR(statement, rset);
+                        statement = con.prepareStatement("SELECT * FROM banned_ips WHERE ip=? LIMIT 1");
+                        statement.setString(1, lastIp);
+                        rset = statement.executeQuery();
+                        if(rset.next())
+                            adm.sendAdmResultMessage(name + " banned by IP: " + lastIp);
+                        else
+                            adm.sendAdmResultMessage("No IP ban for char: " + name);
+                    }
+                }
+                catch(Exception e)
+                {}
+                finally
+                {
+                    Close.CSR(con, statement, rset);
+                }
+                if(AutoBan.isBanned(id))
+                    adm.sendAdmResultMessage(name + " is banned.");
+                else
+                    adm.sendAdmResultMessage("No ban for char: " + name);
+            }
+        }*/
+        /*else if(command.startsWith("admin_accsbanhwid"))
+        {
+            StringTokenizer st = new StringTokenizer(command);
+            if(st.countTokens() > 1)
+            {
+                st.nextToken();
+                String name = st.nextToken();
+                int id = PlayerManager.getObjectIdByName(name);
+                if(id <= 0)
+                {
+                    adm.sendAdmResultMessage("Player " + name + " not exist.");
+                    return true;
+                }
+                String hwid = PlayerManager.getLastHWIDByName(name);
+                if(hwid.isEmpty())
+                {
+                    adm.sendAdmResultMessage("No hwid for player " + name);
+                    return true;
+                }
+
+                List<String> accs = new ArrayList<>();
+                Connect con = null;
+                PreparedStatement statement = null;
+                ResultSet rset = null;
+                try
+                {
+                    con = L2DatabaseFactory.get();
+                    statement = con.prepareStatement("SELECT account_name FROM characters WHERE LastHWID=?");
+                    statement.setString(1, hwid);
+                    rset = statement.executeQuery();
+                    while(rset.next())
+                    {
+                        String ac = rset.getString("account_name");
+                        if(!accs.contains(ac))
+                            accs.add(ac);
+                    }
+                }
+                catch(Exception e)
+                {}
+                finally
+                {
+                    Close.CSR(con, statement, rset);
+                }
+                if(accs.isEmpty())
+                {
+                    adm.sendAdmResultMessage("No accounts!");
+                    return true;
+                }
+                String reason = "";
+                long time = 0L;
+                if(st.hasMoreTokens())
+                    time = Integer.parseInt(st.nextToken()) * 1000L * 60L * 60L * 24L + System.currentTimeMillis();
+                if(st.countTokens() >= 1)
+                {
+                    reason = st.nextToken();
+                    while(st.hasMoreTokens())
+                        reason += " " + st.nextToken();
+                }
+                if(AutoBan.addHwidBan(name, hwid, reason, time, adm.getName()))
+                    adm.sendAdmResultMessage("You banned " + name + " by hwid.");
+                reason = "";
+                for(String i : accs)
+                {
+                    try
+                    {
+                        LoginServerThread.getInstance().sendPacket(new ChangeAccessLevel(i, -100));
+                    }
+                    catch(IOException e)
+                    {
+                        e.printStackTrace();
+                    }
+                    reason += i + " ";
+                }
+                adm.sendAdmResultMessage("Banned accounts: " + reason);
+                accs = null;
+                L2PcInstance p = L2World.getInstance().getPlayer(name);
+                if(p != null)
+                {
+                    if(p.isInOfflineMode())
+                        p.setOfflineMode(false);
+                    p.kick(true);
+                }
             }
         }
+        else if(command.startsWith("admin_hban"))
+        {
+            L2Object t = adm.getTarget();
+            if(t != null && t != adm && t.isPlayer())
+            {
+                StringTokenizer st = new StringTokenizer(command);
+                String reason = "";
+                long time = 0L;
+                if(st.countTokens() > 1)
+                {
+                    st.nextToken();
+                    time = System.currentTimeMillis() + 86400000L * Long.parseLong(st.nextToken());
+                    if(st.countTokens() >= 1)
+                    {
+                        reason = st.nextToken();
+                        while(st.hasMoreTokens())
+                            reason += " " + st.nextToken();
+                    }
+                }
+                L2PcInstance p = (L2PcInstance) t;
+                if(AutoBan.addHwidBan(p.getName(), p.getHWID(), reason, time, adm.getName()))
+                {
+                    try
+                    {
+                        LoginServerThread.getInstance().sendPacket(new ChangeAccessLevel(p.getAccountName(), -100));
+                    }
+                    catch(IOException e)
+                    {
+                        e.printStackTrace();
+                    }
+                    adm.sendAdmResultMessage("You banned " + p.getName() + " by hwid and acc [" + p.getAccountName() + "]");
+                    p.sendMessage("Admin banned you!");
+                    if(p.isInOfflineMode())
+                        p.setOfflineMode(false);
+                    p.kick(true);
+                }
+                else
+                    adm.sendAdmResultMessage("Impossible!");
+            }
+            else
+                adm.sendAdmResultMessage("Incorrect target.");
+        }
+        else if(command.startsWith("admin_hnban"))
+        {
+            StringTokenizer st = new StringTokenizer(command);
+            if(st.countTokens() > 1)
+            {
+                st.nextToken();
+                String name = st.nextToken();
+                String reason = "";
+                long time = 0L;
+                if(st.hasMoreTokens())
+                    time = System.currentTimeMillis() + 86400000L * Long.parseLong(st.nextToken());
+                if(st.countTokens() >= 1)
+                {
+                    reason = st.nextToken();
+                    while(st.hasMoreTokens())
+                        reason += " " + st.nextToken();
+                }
+                L2PcInstance p = L2World.getInstance().getPlayer(name);
+                if(p != null)
+                {
+                    if(AutoBan.addHwidBan(p.getName(), p.getHWID(), reason, time, adm.getName()))
+                    {
+                        try
+                        {
+                            LoginServerThread.getInstance().sendPacket(new ChangeAccessLevel(p.getAccountName(), -100));
+                        }
+                        catch(IOException e)
+                        {
+                            e.printStackTrace();
+                        }
+                        adm.sendAdmResultMessage("You banned " + p.getName() + " by hwid and acc [" + p.getAccountName() + "]");
+                        p.sendMessage("Admin banned you!");
+                        if(p.isInOfflineMode())
+                            p.setOfflineMode(false);
+                        p.kick(true);
+                    }
+                    else
+                        adm.sendAdmResultMessage("Impossible!");
+                }
+                else
+                {
+                    Connect con = null;
+                    PreparedStatement statement = null;
+                    ResultSet rset = null;
+                    try
+                    {
+                        con = L2DatabaseFactory.get();
+                        statement = con.prepareStatement("SELECT LastHWID,char_name,account_name FROM characters WHERE char_name=? LIMIT 1");
+                        statement.setString(1, name);
+                        rset = statement.executeQuery();
+                        if(rset.next())
+                        {
+                            String hwid = rset.getString("LastHWID");
+                            name = rset.getString("char_name");
+                            String acc = rset.getString("account_name");
+                            if(hwid.isEmpty())
+                                adm.sendAdmResultMessage("No char or hwid for name: " + name);
+                            else if(AutoBan.addHwidBan(name, hwid, reason, time, adm.getName()))
+                            {
+                                LoginServerThread.getInstance().sendPacket(new ChangeAccessLevel(acc, -100));
+                                adm.sendAdmResultMessage("You banned " + name + " by hwid and acc [" + acc + "]");
+                            }
+                        }
+                        else
+                            adm.sendAdmResultMessage("Player " + name + " not exist.");
+                    }
+                    catch(Exception e)
+                    {}
+                    finally
+                    {
+                        Close.CSR(con, statement, rset);
+                    }
+                }
+            }
+        }*/
+
         GMAudit.auditGMAction(adm.getName(), command, player, "");
         return true;
     }

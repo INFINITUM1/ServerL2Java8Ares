@@ -4,11 +4,9 @@ import javolution.util.FastList;
 import ru.agecold.Config;
 import ru.agecold.gameserver.ThreadPoolManager;
 import ru.agecold.gameserver.datatables.SkillTable;
-import ru.agecold.gameserver.instancemanager.SmartScreenTextManager;
 import ru.agecold.gameserver.model.L2Summon;
 import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
 import ru.agecold.gameserver.model.entity.TvTEvent.StoredBuff;
-import ru.agecold.gameserver.network.serverpackets.SmartSringPacket;
 import ru.agecold.util.Location;
 import ru.agecold.util.Rnd;
 
@@ -72,6 +70,12 @@ public class TvTEventTeleporter implements Runnable {
             return;
         }
 
+        if (TvTEvent.isStarted() && !_adminRemove) {
+            if (!TvTEvent.isRegisteredPlayer2(_player.getObjectId())) {
+                return;
+            }
+        }
+
         L2Summon summon = _player.getPet();
 
         if (summon != null) {
@@ -85,19 +89,14 @@ public class TvTEventTeleporter implements Runnable {
             _player.setEventChannel(8);
             _player.setTeam(TvTEvent.getParticipantTeamId(_player.getName()) + 1);
         } else {
-            _player.setTeam(0);
             _player.setEventChannel(1);
+            _player.setTeam(0);
             _player.restoreEventSkills();
 
             if (Config.TVT_KILLS_OVERLAY) {
-                SmartSringPacket rsp = SmartScreenTextManager.getInstance().getStringPacket(55);
-                if (rsp != null) {
-                    SmartSringPacket rsp2 = rsp.copy();
-                    rsp2.replaceText("%a%", String.valueOf(0));
-                    rsp2.replaceText("%b%", String.valueOf(0));
-                    rsp2.setShowMs(1000);
-                    _player.sendPacket(rsp2);
-                }
+                //String rsp = _teams[0].getName() +" (" + String.valueOf(_teams[0].getPoints()) + ") x " + _teams[1].getName() + " (" +String.valueOf(_teams[1].getPoints()) + ")";
+
+                    //_player.sendMessage(rsp);
             }
 
             if (Config.TVT_SAVE_BUFFS && _sb != null) {
@@ -127,6 +126,7 @@ public class TvTEventTeleporter implements Runnable {
         if (Config.TVT_TELE_PROTECT > 0) {
             _player.setTvtProtection(Config.TVT_TELE_PROTECT);
         }
+        _player.setEventWait(false);
         _player.teleToLocationEvent(_coordinates.x + Rnd.get(100), _coordinates.y + Rnd.get(100), _coordinates.z, false);
 
         _player.broadcastStatusUpdate();

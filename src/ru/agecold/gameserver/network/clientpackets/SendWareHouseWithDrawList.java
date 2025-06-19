@@ -150,7 +150,8 @@ public final class SendWareHouseWithDrawList extends L2GameClientPacket {
 
         String date = "";
         TextBuilder tb = null;
-        if (Config.LOG_ITEMS) {
+        boolean logCWH = warehouse.getWarehouseType() == 2/* && Config.LOG_CLAN_WH*/;
+        if (Config.LOG_ITEMS || logCWH) {
             date = Log.getTime();
             tb = new TextBuilder();
         }
@@ -162,13 +163,22 @@ public final class SendWareHouseWithDrawList extends L2GameClientPacket {
                 continue;
             }
             L2ItemInstance item = player.getInventory().addItem("WH finish", TransferItem, player, player.getLastFolkNPC());
-            if (Config.LOG_ITEMS && item != null) {
-                String act = "WITHDRAW " + item.getItemName() + "(" + counts[i] + ")(+" + item.getEnchantLevel() + ")(" + item.getObjectId() + ")(npc:" + manager.getTemplate().npcId + ") #(player " + player.getName() + ", account: " + player.getAccountName() + ", ip: " + player.getIP() + ", hwid: " + player.getHWID() + ")";
+            item.setLocation(L2ItemInstance.ItemLocation.INVENTORY);
+            if (!item.isStackable()) {
+                L2World.getInstance().updateObject(item);
+            }
+            if ((Config.LOG_ITEMS || logCWH) && item != null) {
+                String act = "WITHDRAW " + item.getItemName() + "(" + counts[i] + ")(+" + item.getEnchantLevel() + ")(" + item.getObjectId() + ")(npc:" + manager.getTemplate().npcId + ")#(Clan: " + player.getClanName() + "," + player.getFingerPrints() + ")";
                 tb.append(date + act + "\n");
             }
         }
-        if (Config.LOG_ITEMS && tb != null) {
-            Log.item(tb.toString(), Log.WAREHOUSE);
+        if ((Config.LOG_ITEMS || logCWH) && tb != null) {
+            if (Config.LOG_ITEMS) {
+                Log.item(tb.toString(), Log.WAREHOUSE);
+            }
+            if (logCWH) {
+                Log.add(tb.toString(), "items/clan_warehouse");
+            }
             tb.clear();
             tb = null;
         }

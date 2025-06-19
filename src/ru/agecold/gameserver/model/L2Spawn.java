@@ -143,9 +143,9 @@ public class L2Spawn {
 
         // if (mobTemplate.npcId == 8050)
 
-        if ((mobTemplate.npcId >= 31046) && (mobTemplate.npcId <= 31053)) {
-            implementationName = "L2SymbolMaker";
-        }
+        //if ((mobTemplate.npcId >= 31046) && (mobTemplate.npcId <= 31053)) {
+        //    implementationName = "L2SymbolMaker";
+        //}
 
         // Create the generic constructor of L2NpcInstance managed by this L2Spawn
         try {

@@ -36,6 +36,8 @@ import ru.agecold.gameserver.network.serverpackets.GetItem;
 import ru.agecold.gameserver.network.serverpackets.L2GameServerPacket;
 import ru.agecold.gameserver.util.PeaceZone;
 import ru.agecold.util.Location;
+import ru.agecold.util.reference.HardReference;
+import ru.agecold.util.reference.HardReferences;
 
 /**
  * Mother class of all objects in the world wich ones is it possible to interact
@@ -392,7 +394,15 @@ public abstract class L2Object {
     }
 
     public String getName() {
-        return _name;
+        return defaultString(_name);
+    }
+
+    public static String defaultString(String str) {
+        return defaultString(str, "");
+    }
+
+    public static String defaultString(String str, String defaultStr) {
+        return str == null ? defaultStr : str;
     }
 
     public final void setName(String value) {
@@ -755,5 +765,14 @@ public abstract class L2Object {
 
     public L2BoatInstance getBoat() {
         return null;
+    }
+
+    public boolean isEventWait() {
+        return false;
+    }
+
+    public HardReference<? extends L2Object> getRef()
+    {
+        return HardReferences.emptyRef();
     }
 }

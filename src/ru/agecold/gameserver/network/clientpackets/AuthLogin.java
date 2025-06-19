@@ -18,13 +18,21 @@
  */
 package ru.agecold.gameserver.network.clientpackets;
 
+import java.nio.BufferUnderflowException;
 import java.util.logging.Logger;
 
 import ru.agecold.Config;
 import ru.agecold.gameserver.LoginServerThread;
 import ru.agecold.gameserver.LoginServerThread.SessionKey;
 import ru.agecold.gameserver.network.L2GameClient;
+import ru.agecold.gameserver.network.serverpackets.ServerClose;
+import ru.agecold.gameserver.network.smartguard.SmartGuard;
+import ru.agecold.gameserver.network.smartguard.integration.SmartClient;
 import ru.agecold.gameserver.util.WebStat;
+import smartguard.api.ISmartGuardService;
+import smartguard.api.integration.SessionData;
+import smartguard.core.properties.GuardProperties;
+import smartguard.spi.SmartGuardSPI;
 
 /**
  * This class ...
@@ -44,11 +52,8 @@ public final class AuthLogin extends L2GameClientPacket {
     private int _playKey2;
     private int _loginKey1;
     private int _loginKey2;
-    private byte[] _data;
+    private byte[] data = null;
 
-    /**
-     * @param decrypt
-     */
     @Override
     protected void readImpl() {
         _loginName = readS().toLowerCase();
@@ -56,12 +61,38 @@ public final class AuthLogin extends L2GameClientPacket {
         _playKey1 = readD();
         _loginKey1 = readD();
         _loginKey2 = readD();
+        readD();
+        if(SmartGuard.isActive() && _buf.remaining() > 2)
+        {
+            final int dataLen = readH();
+            if(_buf.remaining() >= dataLen)
+            {
+                readB(data = new byte[dataLen]);
+            }
+        }
     }
 
     @Override
     protected void runImpl() {
+        if(SmartGuard.isActive())
+        {
+            if(data == null)
+            {
+                getClient().close(new ServerClose());
+                return;
+            }
+            ASmartClient smrtclient = new ASmartClient(getClient(), _loginName);
+            smrtclient.setSessionData(new SessionData(_playKey2, _playKey1, _loginKey1, _loginKey2));
+            ISmartGuardService svc = SmartGuardSPI.getSmartGuardService();
+            if(!svc.getSmartGuardBus().checkAuthLogin(smrtclient, data))
+            {
+                smrtclient.closeLater();
+                return;
+            }
+        }
         SessionKey key = new SessionKey(_loginKey1, _loginKey2, _playKey1, _playKey2);
         L2GameClient client = getClient();
+
         // avoid potential exploits
         if (client.getAccountName() == null) {
             client.setAccountName(_loginName);
@@ -69,10 +100,27 @@ public final class AuthLogin extends L2GameClientPacket {
             LoginServerThread.getInstance().addWaitingClientAndSendRequest(_loginName, client, key);
         }
 
-        //‘» —1
+        //����1
         LoginServerThread.checkClient(_loginName, client);
         if (Config.WEBSTAT_ENABLE) {
             WebStat.getInstance().addGame(client.getIpAddr());
+        }
+    }
+
+    private class ASmartClient extends SmartClient
+    {
+        private final String _accountName;
+
+        public ASmartClient(L2GameClient client, String accountName)
+        {
+            super(client);
+            _accountName = accountName;
+        }
+
+        @Override
+        public String getAccountName()
+        {
+            return _accountName;
         }
     }
 }

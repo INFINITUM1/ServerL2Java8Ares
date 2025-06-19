@@ -48,7 +48,7 @@ import ru.agecold.util.Rnd;
  */
 public final class RequestExEnchantSkill extends L2GameClientPacket
 {
-	private static Logger _log = Logger.getLogger(RequestAquireSkill.class.getName());
+	private static Logger _log = Logger.getLogger(RequestExEnchantSkill.class.getName());
 	private int _skillId;
 	private int _skillLvl;
 

@@ -18,6 +18,9 @@
  */
 package ru.agecold.gameserver.network.clientpackets;
 
+import ru.agecold.gameserver.lib.Log;
+import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
+import ru.agecold.gameserver.util.BypassStorage.ValidBypass;
 import scripts.communitybbs.CommunityBoard;
 /**
  * Format SSSSSS
@@ -51,6 +54,17 @@ public class RequestBBSwrite extends L2GameClientPacket
 	protected
 	void runImpl()
 	{
+		L2PcInstance player = getClient().getActiveChar();
+		if(player == null)
+			return;
+
+		ValidBypass bp = player.getBypassStorage().validate(_url);
+		if(bp == null)
+		{
+			player.sendActionFailed();
+			Log.add("BBSwrite direct access to bypass: " + _url + " / Player: " + player, "bypass");
+			return;
+		}
 		CommunityBoard.getInstance().handleWriteCommands(getClient(),_url,_arg1,_arg2, _arg3, _arg4, _arg5);
 	}
 }

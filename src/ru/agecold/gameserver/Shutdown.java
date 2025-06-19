@@ -20,7 +20,10 @@ package ru.agecold.gameserver;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import ru.agecold.Config;
 import ru.agecold.L2DatabaseFactory;
+import ru.agecold.gameserver.datatables.CustomServerData;
 import ru.agecold.gameserver.instancemanager.*;
 import ru.agecold.gameserver.model.L2World;
 import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
@@ -52,7 +55,7 @@ public class Shutdown extends Thread {
     public static final int GM_RESTART = 2;
     public static final int ABORT = 3;
     public static final int AUTO_RESTART = 4;
-    private static final String[] MODE_TEXT = {"Профилактическое выключение сервера!", "Выключение", "Рестарт", "Отмена", "Автоматический рестарт!"};
+    private static final String[] MODE_TEXT = {"���������������� ���������� �������!", "����������", "�������", "������", "�������������� �������!"};
     private boolean _AbortShutdown = false;
 
     /**
@@ -75,10 +78,10 @@ public class Shutdown extends Thread {
         }
 
         if (_shutdownMode > 0) {
-            _an.announceToAll("Внимание игроки!");
-            _an.announceToAll(MODE_TEXT[_shutdownMode] + " сервера через " + seconds + " секунд!");
+            _an.announceToAll("�������� ������!");
+            _an.announceToAll(MODE_TEXT[_shutdownMode] + " ������� ����� " + seconds + " ������!");
             if (_shutdownMode == 1 || _shutdownMode == 2) {
-                _an.announceToAll("Пожалуйста, выйдите из игры.");
+                _an.announceToAll("����������, ������� �� ����.");
             }
         }
 
@@ -97,7 +100,7 @@ public class Shutdown extends Thread {
     public void telnetAbort(String IP) {
         Announcements _an = Announcements.getInstance();
         _log.warning("IP: " + IP + " issued shutdown ABORT. " + MODE_TEXT[_shutdownMode] + " has been stopped!");
-        _an.announceToAll(MODE_TEXT[_shutdownMode] + ", сервер продолжает свою работу!");
+        _an.announceToAll(MODE_TEXT[_shutdownMode] + ", ������ ���������� ���� ������!");
 
         if (_counterInstance != null) {
             _counterInstance._abort();
@@ -193,9 +196,9 @@ public class Shutdown extends Thread {
                     //Olympiad.getInstance().saveOlympiadStatus();
                     try {
                         L2World.getInstance().deleteVisibleNpcSpawns();
-                        _an.announceToAll("Выключение сервера на профилактику через минуту!");
-                        _an.announceToAll("Выйдите из игры, что-бы не потерять достигнутых результатов.");
-                        _an.announceToAll("Приносим извинения за возможные неудобства.");
+                        _an.announceToAll("���������� ������� �� ������������ ����� ������!");
+                        _an.announceToAll("������� �� ����, ���-�� �� �������� ����������� �����������.");
+                        _an.announceToAll("�������� ��������� �� ��������� ����������.");
                         Broadcast.toAllOnlinePlayers(SystemMessage.id(SystemMessageId.THE_SERVER_WILL_BE_COMING_DOWN_IN_S1_SECONDS).addNumber(60));
                         Thread.sleep(30000);
                     } catch (InterruptedException e) {
@@ -203,9 +206,9 @@ public class Shutdown extends Thread {
 
                     try {
                         System.err.println("SIGTERM received. Shutting down after 30 sec!");
-                        _an.announceToAll("Выключение сервера на профилактику через 30 секунд!");
-                        _an.announceToAll("Выйдите из игры, что-бы не потерять достигнутых результатов.");
-                        _an.announceToAll("Приносим извинения за возможные неудобства.");
+                        _an.announceToAll("���������� ������� �� ������������ ����� 30 ������!");
+                        _an.announceToAll("������� �� ����, ���-�� �� �������� ����������� �����������.");
+                        _an.announceToAll("�������� ��������� �� ��������� ����������.");
                         Broadcast.toAllOnlinePlayers(SystemMessage.id(SystemMessageId.THE_SERVER_WILL_BE_COMING_DOWN_IN_S1_SECONDS).addNumber(20));
                         Thread.sleep(20000);
                     } catch (InterruptedException e) {
@@ -214,9 +217,16 @@ public class Shutdown extends Thread {
                     for (int i = 10; i > 0; i--) {
                         try {
                             System.err.println("SIGTERM received. Shutting down after " + i + " sec!");
-                            _an.announceToAll("Выключение сервера на профилактику через " + i + " секунд.");
-                            _an.announceToAll("Пожалуйста, выйдите из игры.");
+                            _an.announceToAll("���������� ������� �� ������������ ����� " + i + " ������.");
+                            _an.announceToAll("����������, ������� �� ����.");
                             if (i == 3) {
+                                // ensure all services are stopped
+                                try {
+                                    if(Config.ENABLE_BALANCE_SYSTEM)
+                                        CustomServerData.getInstance().onReloadBalanceSystem();
+                                } catch (Throwable t) {
+                                    // ignore
+                                }
                                 disconnectAllCharacters();
                             }
                             Broadcast.toAllOnlinePlayers(SystemMessage.id(SystemMessageId.THE_SERVER_WILL_BE_COMING_DOWN_IN_S1_SECONDS).addNumber(i));
@@ -319,10 +329,10 @@ public class Shutdown extends Thread {
         }
 
         /*
-         * if(_shutdownMode > 0) { _an.announceToAll("Внимание игроки!");
-         * _an.announceToAll(MODE_TEXT[_shutdownMode] + " сервера через
-         * "+seconds+ " секунд!"); if(_shutdownMode == 1 || _shutdownMode == 2)
-         * { _an.announceToAll("Пожалуйста, выйдите из игры."); }
+         * if(_shutdownMode > 0) { _an.announceToAll("�������� ������!");
+         * _an.announceToAll(MODE_TEXT[_shutdownMode] + " ������� �����
+         * "+seconds+ " ������!"); if(_shutdownMode == 1 || _shutdownMode == 2)
+         * { _an.announceToAll("����������, ������� �� ����."); }
          }
          */
         if (_counterInstance != null) {
@@ -342,7 +352,7 @@ public class Shutdown extends Thread {
     public void abort(L2PcInstance activeChar) {
         Announcements _an = Announcements.getInstance();
         _log.warning("GM: " + activeChar.getName() + "(" + activeChar.getObjectId() + ") issued shutdown ABORT. " + MODE_TEXT[_shutdownMode] + " has been stopped!");
-        _an.announceToAll(MODE_TEXT[_shutdownMode] + ", сервер продолжает свою работу.");
+        _an.announceToAll(MODE_TEXT[_shutdownMode] + ", ������ ���������� ���� ������.");
 
         _AbortShutdown = true;
 
@@ -397,18 +407,18 @@ public class Shutdown extends Thread {
                                 continue;
                             }
                             try {
-                                player.sendHtmlMessage("Выйдите из игры!");
+                                player.sendHtmlMessage("������� �� ����!");
                                 player.setIsParalyzed(true);
                             } catch (Throwable t) {
                                 // just to make sure we try to kill the connection 
                             }
                         }
-                        _an.announceToAll(MODE_TEXT[_shutdownMode] + " через " + _secondsShut + " секунд!");
+                        _an.announceToAll(MODE_TEXT[_shutdownMode] + " ����� " + _secondsShut + " ������!");
                         break;
                     case 5:
                         disconnectAllCharacters();
-                        _an.announceToAll(MODE_TEXT[_shutdownMode] + " через " + _secondsShut + " секунд!");
-                        _an.announceToAll("Пожалуйста, выйдите из игры.");
+                        _an.announceToAll(MODE_TEXT[_shutdownMode] + " ����� " + _secondsShut + " ������!");
+                        _an.announceToAll("����������, ������� �� ����.");
                         Broadcast.toAllOnlinePlayers(SystemMessage.id(SystemMessageId.THE_SERVER_WILL_BE_COMING_DOWN_IN_S1_SECONDS).addNumber(_secondsShut));
                         break;
                 }
@@ -429,8 +439,8 @@ public class Shutdown extends Thread {
 
     private void SendCountdownMMessage(String Mode, int secs) {
         Announcements _an = Announcements.getInstance();
-        _an.announceToAll(Mode + " сервера через " + secs / 60 + " минут.");
-        _an.announceToAll("Пожалуйста, выйдите из игры.");
+        _an.announceToAll(Mode + " ������� ����� " + secs / 60 + " �����.");
+        _an.announceToAll("����������, ������� �� ����.");
 
         Broadcast.toAllOnlinePlayers(SystemMessage.id(SystemMessageId.THE_SERVER_WILL_BE_COMING_DOWN_IN_S1_SECONDS).addNumber(secs));
     }
@@ -442,7 +452,7 @@ public class Shutdown extends Thread {
     private void saveData() {
         Announcements _an = Announcements.getInstance();
         try {
-            _an.announceToAll(MODE_TEXT[_shutdownMode] + " сервера!");
+            _an.announceToAll(MODE_TEXT[_shutdownMode] + " �������!");
         } catch (Throwable t) {
             _log.log(Level.INFO, "", t);
         }

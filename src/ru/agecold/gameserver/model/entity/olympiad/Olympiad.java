@@ -3,6 +3,7 @@ package ru.agecold.gameserver.model.entity.olympiad;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Properties;
 import java.util.concurrent.ScheduledFuture;
@@ -70,6 +71,7 @@ public class Olympiad {
     public static final Stadia[] STADIUMS = new Stadia[22];
     public static OlympiadManager _manager;
     private static FastList<L2OlympiadManagerInstance> _npcs = new FastList<L2OlympiadManagerInstance>();
+    private static String _olympiadEndPrint;
 
     public static void load() {
         _nobles = new FastMap<Integer, StatsSet>().shared("Olympiad._nobles");
@@ -127,8 +129,18 @@ public class Olympiad {
                 }
                 break;
             case 1:
-                _isOlympiadEnd = true;
-                _scheduledValdationTask = ThreadPoolManager.getInstance().scheduleGeneral(new ValidationTask(), getMillisToValidationEnd());
+                if (_validationEnd > Calendar.getInstance().getTimeInMillis())
+                {
+                    _isOlympiadEnd = true;
+                    _scheduledValdationTask = ThreadPoolManager.getInstance().scheduleGeneral(new ValidationTask(), getMillisToValidationEnd());
+                }
+                else
+                {
+                    _currentCycle++;
+                    _period = 0;
+                    OlympiadDatabase.cleanupNobles();
+                    OlympiadDatabase.setNewOlympiadEnd();
+                }
                 break;
             default:
                 _log.warning("Olympiad System: Omg something went wrong in loading!! Period = " + _period);
@@ -142,7 +154,8 @@ public class Olympiad {
             _log.info("Olympiad System: Currently in Validation Period");
         }
 
-        _log.info("Olympiad System: Period Ends....");
+        _olympiadEndPrint = new SimpleDateFormat("dd.MM.yyyy HH:mm").format(_olympiadEnd);
+        _log.info("Olympiad System: Period Ends...." + _olympiadEndPrint);
 
         long milliToEnd;
         if (_period == 0) {
@@ -180,6 +193,11 @@ public class Olympiad {
         if (_period == 0) {
             init();
         }
+    }
+
+    public static String getOlympiadEndPrint()
+    {
+        return _olympiadEndPrint;
     }
 
     private static void initStadiums() {
@@ -522,6 +540,11 @@ public class Olympiad {
 
     private static long getMillisToOlympiadEnd() {
         return _olympiadEnd - System.currentTimeMillis();
+    }
+
+    public static long getOlympiadEnd()
+    {
+        return _olympiadEnd;
     }
 
     static long getMillisToValidationEnd() {

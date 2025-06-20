@@ -20,7 +20,11 @@ package ru.agecold.gameserver;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import ru.agecold.Config;
 import ru.agecold.L2DatabaseFactory;
+import ru.agecold.gameserver.datatables.CustomServerData;
+
 import ru.agecold.gameserver.instancemanager.*;
 import ru.agecold.gameserver.model.L2World;
 import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
@@ -217,6 +221,13 @@ public class Shutdown extends Thread {
                             _an.announceToAll("Выключение сервера на профилактику через " + i + " секунд.");
                             _an.announceToAll("Пожалуйста, выйдите из игры.");
                             if (i == 3) {
+                                                                // ensure all services are stopped
+                                try {
+                                    if(Config.ENABLE_BALANCE_SYSTEM)
+                                        CustomServerData.getInstance().onReloadBalanceSystem();
+                                } catch (Throwable t) {
+                                    // ignore
+                                }
                                 disconnectAllCharacters();
                             }
                             Broadcast.toAllOnlinePlayers(SystemMessage.id(SystemMessageId.THE_SERVER_WILL_BE_COMING_DOWN_IN_S1_SECONDS).addNumber(i));

@@ -20,6 +20,9 @@ package ru.agecold;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 
@@ -39,7 +42,8 @@ public class ConsoleLogFormatter extends Formatter
 	 */
 //	private static final String _ = " ";
 	private static final String a = "\r\n";
-	@Override
+	private static final DateFormat df = new SimpleDateFormat("[hh:mm:ss.SSS]");
+		@Override
 	public String format(LogRecord record)
 	{
         TextBuilder output = new TextBuilder();
@@ -47,6 +51,8 @@ public class ConsoleLogFormatter extends Formatter
 //		output.append(_);
 //		output.append(record.getLoggerName());
 //		output.append(_);
+		output.append(df.format(new Date(record.getMillis()))).append(" - ");
+				
 		output.append(record.getMessage());
 		output.append(a);
 		if (record.getThrown() != null) {

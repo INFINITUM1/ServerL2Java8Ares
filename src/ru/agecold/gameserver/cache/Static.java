@@ -653,6 +653,7 @@ public final class Static {
     public static String TVT_GAME_END_S1_SECS;
     public static String TVT_FINISHED_INACTIVE;
     public static String TVT_S1_WIN_KILLS_S2;
+    public static String TVT_FINISHED_TIE;
     public static String MPVP_STARTED;
     public static String MPVP_REG_FOR;
     public static String MPVP_CANCELED_NO_PLAYERS;
@@ -697,6 +698,8 @@ public final class Static {
         TVT_GAME_END_S1_SECS = CustomServerData.getInstance().getMessage(152);
         TVT_FINISHED_INACTIVE = CustomServerData.getInstance().getMessage(153);
         TVT_S1_WIN_KILLS_S2 = CustomServerData.getInstance().getMessage(154);
+        TVT_FINISHED_TIE = CustomServerData.getInstance().getMessage(155);
+
 
         SCH_STARTED = CustomServerData.getInstance().getMessage(78);
         SCH_STEP1 = CustomServerData.getInstance().getMessage(79);

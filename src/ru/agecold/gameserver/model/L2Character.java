@@ -58,6 +58,9 @@ import ru.agecold.gameserver.util.PeaceZone;
 import ru.agecold.gameserver.util.Util;
 import ru.agecold.util.Location;
 import ru.agecold.util.Rnd;
+import ru.agecold.util.reference.HardReference;
+import ru.agecold.util.reference.L2Reference;
+
 import scripts.skills.ISkillHandler;
 import scripts.skills.SkillHandler;
 
@@ -146,6 +149,8 @@ public abstract class L2Character extends L2Object {
     public static final int ZONE_MONSTERTRACK = 512;
     public static final int ZONE_BOSS = 1024;
     private int _currentZones = 0;
+    protected HardReference<? extends L2Character> reference;
+
 
     public boolean isInsideZone(int zone) {
         return ((_currentZones & zone) != 0);
@@ -197,6 +202,14 @@ public abstract class L2Character extends L2Object {
     public L2Character(int objectId, L2CharTemplate template) {
         super(objectId);
         init(template);
+        reference = new L2Reference<L2Character>(this);
+    }
+
+    @Override
+    public HardReference<? extends L2Character> getRef()
+    {
+        return reference;
+ 
     }
 
     private void init(L2CharTemplate template) {
@@ -1412,11 +1425,14 @@ public abstract class L2Character extends L2Object {
 
         if (isInOlympiadMode()) {
             if (skill.isFixedHitTimeOly()) {
-                hitTime = (int) Config.ALT_FIXED_HIT_TIME.get(skill.getId());
+                hitTime = (int) Config.ALT_FIXED_HIT_TIME_OLY.get(skill.getId());
             }
         }
         else if (skill.isFixedHitTime()) {
-            hitTime = (int) Config.ALT_FIXED_HIT_TIME_OLY.get(skill.getId());
+            hitTime = (int) Config.ALT_FIXED_HIT_TIME.get(skill.getId());
+        }
+                else if (skill.isStaticHitTime() && Config.ENABLE_STATIC_HIT_TIME) {
+            hitTime = skill.getHitTime();
         }
 
         //System.out.println("13 / "+(System.currentTimeMillis()-start));
@@ -1502,7 +1518,7 @@ public abstract class L2Character extends L2Object {
     }
 
     private int calcReuseDelay(L2Skill skill, int reuseDelay) {
-        if (skill.isFixedReuse()) {
+        if (skill.isFixedReuse() || (Config.ENABLE_STATIC_REUSE && skill.isStaticReuse())) {
             reuseDelay = skill.getReuseDelay();
         } else {
             if (skill.isMagic()) {
@@ -2217,7 +2233,7 @@ public abstract class L2Character extends L2Object {
                 onHitTimer(_hitTarget, _damage, _crit, _miss, _soulshot, _shld);
                 getAI().notifyEvent(CtrlEvent.EVT_READY_TO_ACT);
             } catch (Throwable e) {
-                _log.severe(e.toString());
+                // _log.severe(e.toString());
             }
         }
     }
@@ -2249,7 +2265,6 @@ public abstract class L2Character extends L2Object {
                         break;
                     case 2:
                         onMagicHitTimer(_targets, _skill, _coolTime, false, _hitTime);
-                        ;
                         break;
                     case 3:
                         onMagicFinalizer(_skill, _targets.getFirst());
@@ -5557,11 +5572,18 @@ public abstract class L2Character extends L2Object {
 
                     double absorbPercent = getStat().calcStat(Stats.ABSORB_DAMAGE_PERCENT, 0, null, null);
                     if (absorbPercent > 0) {
-                        int absorbDamage = (int) (absorbPercent / 100. * damage);
-                        absorbDamage = Math.min(absorbDamage, (int) (getMaxHp() - getCurrentHp()));// Can't absord more than max hp
-                        if (absorbDamage > 0) {
-                            setCurrentHp(getCurrentHp() + absorbDamage);
-                        }
+                        if((target.isL2Monster() || target.isRaid() || target.isGrandRaid()) && Config.NPCS_DOWN_ABSORB.containsKey(target.getNpcId())) {
+                            int absorbDamage = (int) (absorbPercent / 100. * damage);
+                            absorbDamage = Math.min(absorbDamage, (int) (getMaxHp() - getCurrentHp()));// Can't absord more than max hp
+                            if(absorbDamage > 0) {
+                                setCurrentHp(getCurrentHp() + Math.min(absorbDamage, Config.NPCS_DOWN_ABSORB.get(target.getNpcId())));
+                            }
+                        } else {
+                            int absorbDamage = (int) (absorbPercent / 100. * damage);
+                            absorbDamage = Math.min(absorbDamage, (int) (getMaxHp() - getCurrentHp()));// Can't absord more than max hp
+                            if(absorbDamage > 0) {
+                                setCurrentHp(getCurrentHp() + absorbDamage);
+                            }
                     }
                 }
             }

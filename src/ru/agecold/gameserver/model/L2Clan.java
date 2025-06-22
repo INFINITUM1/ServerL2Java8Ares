@@ -478,7 +478,7 @@ public class L2Clan {
     public int getMaxNrOfMembers(int pledgetype) {
         int limit = 0;
 
-        switch (pledgetype) {
+        /*switch (pledgetype) {
             case 0:
                 limit = getClanMaxMembers(Config.CLAN_MEMBERS_COUNT.get(getLevel()), 0);
                 break;
@@ -495,8 +495,8 @@ public class L2Clan {
                 break;
             default:
                 break;
-        }
-        return limit;
+        }*/
+        return getClanMaxMembers(Config.CLAN_MEMBERS_COUNT.get(getLevel()), 0);
     }
 
     private int getClanMaxMembers(Integer count, int limit)

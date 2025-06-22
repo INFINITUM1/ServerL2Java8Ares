@@ -411,6 +411,8 @@ public abstract class L2Skill {
     private final int _savevs;
     private final int _initialEffectDelay;
     private final boolean _isSuicideAttack;
+    private final boolean _staticReuse;
+    private final boolean _staticHitTime;
     private final Stats _stat;
     private final int _condition;
     private final int _conditionValue;
@@ -428,6 +430,7 @@ public abstract class L2Skill {
     private final int _numCharges;
     private final int _forceId;
     private final boolean _isHeroSkill; // If true the skill is a Hero Skill
+    private final boolean _isSelfDispellable;
     private final int _baseCritRate;  // percent of success for skill critical hit (especially for PDAM & BLOW - they're not affected by rCrit values or buffs). Default loads -1 for all other skills but 0 to PDAM & BLOW
     private final int _lethalEffect1;     // percent of success for lethal 1st effect (hit cp to 1 or if mob hp to 50%) (only for PDAM skills)
     private final int _lethalEffect2;     // percent of success for lethal 2nd effect (hit cp,hp to 1 or if mob hp to 1) (only for PDAM skills)
@@ -576,6 +579,8 @@ public abstract class L2Skill {
         _conditionValue = set.getInteger("conditionValue", 0);
         _overhit = set.getBool("overHit", false);
         _isSuicideAttack = set.getBool("isSuicideAttack", false);
+        _staticReuse = set.getBool("staticReuse", false);
+        _staticHitTime = set.getBool("staticHitTime", false);
         _weaponsAllowed = set.getInteger("weaponsAllowed", 0);
         _armorsAllowed = set.getInteger("armorsAllowed", 0);
 
@@ -595,6 +600,7 @@ public abstract class L2Skill {
         _chanceTriggeredLevel = set.getInteger("chanceTriggeredLevel", 0);
 
         _isHeroSkill = HeroSkillTable.isHeroSkill(_id);
+        _isSelfDispellable = set.isSet("isSelfDispellable") ? set.getBool("isSelfDispellable") : Config.SKILL_LIST_IS_SELF_DISPEL.contains(_id);
 
         _baseCritRate = set.getInteger("baseCritRate", (_skillType == SkillType.PDAM || _skillType == SkillType.BLOW) ? 0 : -1);
         _lethalEffect1 = set.getInteger("lethal1", 0);
@@ -1564,6 +1570,22 @@ public abstract class L2Skill {
     }
 
     /**
+     * @return true to set static reuse.
+     */
+    public final boolean isStaticReuse()
+    {
+        return _staticReuse;
+    }
+
+    /**
+     * @return true to set static hittime.
+     */
+    public final boolean isStaticHitTime()
+    {
+        return _staticHitTime;
+    }
+
+    /**
      * Return the power of the skill.<BR><BR>
      */
     public final double getPower(L2Character activeChar) {
@@ -1916,6 +1938,11 @@ public abstract class L2Skill {
 
     public final boolean isHeroSkill() {
         return _isHeroSkill;
+    }
+
+    public final boolean isSelfDispellable()
+    {
+        return _isSelfDispellable;
     }
 
     public final int getNumCharges() {

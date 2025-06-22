@@ -224,6 +224,8 @@ public class L2Multisell {
             temp.addEntry(e);
         }
         player.setMultListId(list.getListId());
+        if(player.isGM())
+            player.sendMultisellMessage(" " + temp.getListId() + ".xml");
         player.sendPacket(new MultiSellList(temp, page, 1, true));
     }
 

@@ -216,12 +216,8 @@ public final class L2World {
      * @param name Name of the player to get Instance
      */
     public L2PcInstance getPlayer(String name) {
-        return findPlayer(null, name);
-    }
-
-    private L2PcInstance findPlayer(L2PcInstance player, String name) {
         for (Map.Entry<Integer, L2PcInstance> entry : _allPlayers.entrySet()) {
-            player = entry.getValue();
+            L2PcInstance player = entry.getValue();
             if (player == null || player.isOnline() == 0) {
                 continue;
             }
@@ -962,5 +958,16 @@ public final class L2World {
          * if(Config.ONLINE_PERC > 0) _online *= Config.ONLINE_PERC;
          */
         return _online_hwid;
+    }
+
+    public void updateObject(L2Object object)
+    {
+        if(object == null) {
+            return;
+        }
+        if(!_allObjects.containsKey(object.getObjectId())) {
+            return;
+        }
+        _allObjects.put(object.getObjectId(), object);
     }
 }

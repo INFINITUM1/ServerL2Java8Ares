@@ -190,6 +190,21 @@ public class PcInventory extends Inventory {
      * Returns the list of items in inventory available for transaction
      * @return L2ItemInstance : items in inventory
      */
+    public List<L2ItemInstance> getAvailableItemsList(boolean allowAdena) {
+        List<L2ItemInstance> list = new FastList<L2ItemInstance>();
+        for (L2ItemInstance item : _items) {
+            if (item != null && item.isAvailable(getOwner(), allowAdena)) {
+                list.add(item);
+            }
+        }
+
+        return list;
+    }
+
+    /**
+     * Returns the list of items in inventory available for transaction
+     * @return L2ItemInstance : items in inventory
+     */
     public L2ItemInstance[] getAvailableItems(boolean allowAdena) {
         List<L2ItemInstance> list = new FastList<L2ItemInstance>();
         for (L2ItemInstance item : _items) {

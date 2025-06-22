@@ -207,6 +207,7 @@ public final class CharacterCreate extends L2GameClientPacket {
                 //	_log.fine("adding starter skill:" + startSkills[i].getId()+ " / "+ startSkills[i].getLevel());
             }
         }
+        newChar.storeHWID(client.getHWID());
         L2GameClient.saveCharToDisk(newChar);
         newChar.deleteMe(); // release the world of this character and it's inventory
 

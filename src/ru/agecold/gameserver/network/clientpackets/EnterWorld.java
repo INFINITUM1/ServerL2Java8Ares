@@ -28,6 +28,7 @@ import ru.agecold.gameserver.Announcements;
 import ru.agecold.gameserver.GmListTable;
 import ru.agecold.gameserver.SevenSigns;
 import ru.agecold.gameserver.cache.Static;
+import ru.agecold.gameserver.datatables.CustomServerData;
 import ru.agecold.gameserver.datatables.HwidSpamTable;
 import ru.agecold.gameserver.datatables.MapRegionTable;
 import ru.agecold.gameserver.datatables.SkillTable;
@@ -143,6 +144,11 @@ public class EnterWorld extends L2GameClientPacket {
             Announcements.getInstance().showWarnings(player);
         }
         //System.out.println("#####5");
+
+        if(Config.ENABLE_FAKE_ITEMS_MOD)
+            onEnterFakeItems(player);
+        if(Config.ENABLE_BALANCE_SYSTEM)
+            onEnterBalanceSystem(player);
 
         //add char to online characters
         player.setOnlineStatus(true);
@@ -324,6 +330,32 @@ public class EnterWorld extends L2GameClientPacket {
         //
         player.sendActionFailed();
         //System.out.println("#####finish");
+    }
+
+    private void onEnterFakeItems(L2PcInstance player)
+    {
+        if(CustomServerData.getInstance().getFakeItems().isEmpty())
+            return;
+
+        player.getInventory().addPaperdollListener(new Inventory.ItemFakeAppearanceEquipListener(player.getInventory()));
+        for(L2ItemInstance item : player.getInventory().getPaperdollItems())
+        {
+            if(item != null && CustomServerData.getInstance().getFakeItems().containsKey(item.getItemId()))
+                if(Inventory.setEquippedFakeItem(player, item))
+                    return;
+        }
+    }
+
+    public void onEnterBalanceSystem(L2PcInstance player)
+    {
+        if(player == null)
+        {
+            return;
+        }
+        if(!CustomServerData.getInstance().getStats().isEmpty())
+        {
+            CustomServerData.getInstance().addStats(player);
+        }
     }
 
     /**

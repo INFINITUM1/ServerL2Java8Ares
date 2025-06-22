@@ -18,10 +18,10 @@
  */
 package ru.agecold.gameserver.network.clientpackets;
 
-//import java.util.logging.Logger;
 import ru.agecold.Config;
-import ru.agecold.gameserver.network.serverpackets.KeyPacket;
-import ru.agecold.gameserver.network.serverpackets.SendStatus;
+import ru.agecold.gameserver.network.serverpackets.ServerClose;
+import ru.agecold.gameserver.network.smartguard.SmartGuard;
+import ru.agecold.gameserver.network.smartguard.packet.VersionCheck;
 
 /**
  * This class ...
@@ -30,42 +30,57 @@ import ru.agecold.gameserver.network.serverpackets.SendStatus;
  */
 public final class ProtocolVersion extends L2GameClientPacket {
 
-    private int _version;
+    private static final short BasePacketSize = 260;
+    private int protocol;
+    private boolean hasExtraData = false;
 
     @Override
     protected void readImpl() {
-        _version = readH();
+        protocol = readD();
+        if(SmartGuard.isActive() && _buf.remaining() >= 262)
+        {
+            _buf.position(_buf.position() + BasePacketSize);
+            int dataLen = readH();
+            if(_buf.remaining() >= dataLen)
+            {
+                hasExtraData = true;
+            }
+        }
     }
 
     @Override
     protected void runImpl() {
         //System.out.println("###" + (_client == null));
         // this packet is never encrypted
-        if (_version == -2) {
+        if (protocol == -2) {
             //  if (Config.DEBUG) _log.info("Ping received");
             // this is just a ping attempt from the new C2 client
-            getClient().close(new SendStatus());
+            getClient().close(ServerClose.STATIC);
             return;
         }
 
-        if (_version < Config.MIN_PROTOCOL_REVISION || _version > Config.MAX_PROTOCOL_REVISION) {
-            // _log.info("Client: "+getClient().toString()+" -> Protocol Revision: " + _version + " is invalid. Minimum is "+Config.MIN_PROTOCOL_REVISION+" and Maximum is "+Config.MAX_PROTOCOL_REVISION+" are supported. Closing connection.");
-            // _log.warning("Wrong Protocol Version "+_version);
-            //if (Config.SHOW_PROTOCOL_VERSIONS)
-            //System.out.println("#####L2TOP? "+_version+" FROM"+getClient().toString());
-            //System.out.println("##### " + _version + " FROM" + getClient().toString());
+        if (protocol < Config.MIN_PROTOCOL_REVISION || protocol > Config.MAX_PROTOCOL_REVISION) {
+            // _log.info("Client: "+getClient().toString()+" -> Protocol Revision: " + protocol + " is invalid. Minimum is "+Config.MIN_PROTOCOL_REVISION+" and Maximum is "+Config.MAX_PROTOCOL_REVISION+" are supported. Closing connection.");
+            // _log.warning("Wrong Protocol Version "+protocol);
+            //if (Config.SHOW_PROTOCOLprotocolS)
+            //System.out.println("#####L2TOP? "+protocol+" FROM"+getClient().toString());
+            //System.out.println("##### " + protocol + " FROM" + getClient().toString());
 
-            getClient().close(new SendStatus());
+            getClient().close(ServerClose.STATIC);
             return;
             //getClient().closeNow();
             //return;
         }
 
-        if (Config.CATS_GUARD) {
-            sendPacket(new KeyPacket(getClient().enableCrypt(), 1));
+        if(SmartGuard.isActive() && !hasExtraData)
+        {
+            getClient().close(ServerClose.STATIC);
             return;
         }
-        //System.out.println("##### " + _version + " FROM" + getClient().toString());
-        getClient().sendPacket(new KeyPacket(getClient().enableCrypt()));
+
+        //System.out.println("##### " + protocol + " FROM" + getClient().toString());
+        getClient().setRevision(protocol);
+        sendPacket(new VersionCheck(getClient().enableCrypt()));
+        return;
     }
 }

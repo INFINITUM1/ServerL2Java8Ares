@@ -171,14 +171,14 @@ public class Siege {
                 long timeRemaining = getSiegeDate().getTimeInMillis() - Calendar.getInstance().getTimeInMillis();
                 String CastleName = getCastleName(getCastle().getCastleId());
 
-                if (timeRemaining > 86400000) {
-                    ThreadPoolManager.getInstance().scheduleGeneral(new ScheduleStartSiegeTask(_castleInst), timeRemaining - 86400000); // Prepare task for 24 before siege start to end registration
-                } else if ((timeRemaining <= 86400000) && (timeRemaining > 13600000)) {
+                if (timeRemaining > 1200000) {
+                    ThreadPoolManager.getInstance().scheduleGeneral(new ScheduleStartSiegeTask(_castleInst), timeRemaining - 1200000); // Prepare task for 2 before siege start to end registration
+                } else if ((timeRemaining <= 1200000) && (timeRemaining > 900000)) {
                     announceToPlayer("«акончена регистраци€ на осаду " + CastleName, false);
                     _isRegistrationOver = true;
                     clearSiegeWaitingClan();
-                    ThreadPoolManager.getInstance().scheduleGeneral(new ScheduleStartSiegeTask(_castleInst), timeRemaining - 13600000); // Prepare task for 1 hr left before siege start.
-                } else if ((timeRemaining <= 13600000) && (timeRemaining > 600000)) {
+                    ThreadPoolManager.getInstance().scheduleGeneral(new ScheduleStartSiegeTask(_castleInst), timeRemaining - 900000); // Prepare task for 1 hr left before siege start.
+                } else if ((timeRemaining <= 900000) && (timeRemaining > 600000)) {
                     announceToPlayer(Math.round(timeRemaining / 60000) + " минут до начала осады " + CastleName, false);
                     ThreadPoolManager.getInstance().scheduleGeneral(new ScheduleStartSiegeTask(_castleInst), timeRemaining - 600000); // Prepare task for 10 minute left.
                 } else if ((timeRemaining <= 600000) && (timeRemaining > 300000)) {
@@ -1241,11 +1241,19 @@ public class Siege {
                 continue;
             }
 
-            L2ArtefactInstance art = new L2ArtefactInstance(IdFactory.getInstance().getNextId(), NpcTable.getInstance().getTemplate(_sp.getNpcId()));
-            art.setCurrentHpMp(art.getMaxHp(), art.getMaxMp());
-            art.setHeading(_sp.getLocation().getHeading());
-            art.spawnMe(_sp.getLocation().getX(), _sp.getLocation().getY(), _sp.getLocation().getZ() + 50);
-            _artifacts.add(art);
+            try
+            {
+                L2Spawn art = new L2Spawn(NpcTable.getInstance().getTemplate(_sp.getNpcId()));
+
+                art.setLocx(_sp.getLocation().getX());
+                art.setLocy(_sp.getLocation().getY());
+                art.setLocz(_sp.getLocation().getZ() + 50);
+                _artifacts.add((L2ArtefactInstance) art.doSpawn());
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
         }
     }
 

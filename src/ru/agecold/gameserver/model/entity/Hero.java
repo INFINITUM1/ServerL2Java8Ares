@@ -188,7 +188,7 @@ public class Hero {
                         if (item == null) {
                             continue;
                         }
-                        if (item.isHeroItem()) {
+                        if (Config.DESTROY_HERO_ITEM_AFTER_END_HERO && item.isHeroItem()) {
                             player.destroyItem("Hero", item, player, true);
                         }
                     }
@@ -312,7 +312,7 @@ public class Hero {
         if (player.getClan() != null) {
             Announcements.getInstance().announceToAll(player.getName() + " из клана " + player.getClan().getName() + " стал героем в классе " + heroclass + ". Поздравляем!");
             if (player.getClan().getLevel() >= 5) {
-                player.getClan().addPoints(1000);
+                player.getClan().addPoints(Config.ALT_CLAN_REP_HERO);
                 player.getClan().broadcastMessageToOnlineMembers("Члена клана " + player.getName() + " стал героем. " + (Config.ALT_CLAN_REP_MUL > 1 ? ((int) 1000 * Config.ALT_CLAN_REP_MUL) : 1000) + " очков было добавлено к счету репутации Вашего клана.");
             }
         } else {

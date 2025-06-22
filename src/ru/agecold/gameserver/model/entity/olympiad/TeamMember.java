@@ -122,6 +122,8 @@ public class TeamMember {
             }
 
             player.setChannel(2);
+            player.abortAttack();
+            player.abortCast();
             player.setTarget(null);
             player.setIsInOlympiadMode(true);
 
@@ -333,10 +335,11 @@ public class TeamMember {
             // Remove Summon's Buffs
             if (player.getPet() != null) {
                 L2Summon summon = player.getPet();
-                summon.stopAllEffects();
-
                 if (summon.isPet()) {
                     summon.unSummon(player);
+                }
+                else {
+                    summon.stopAllEffects();
                 }
             }
             if (player.getTrainedBeast() != null) {

@@ -3528,7 +3528,14 @@ public enum SystemMessageId {
     //No packages have arrived
     PACKAGE_SEND_ERROR(694),
     //You failed at sending the package because you are too far from the warehouse.
-    PACKAGE_SEND_ERROR_TOO_FAR(763);
+    PACKAGE_SEND_ERROR_TOO_FAR(763),
+    YOUR_PET_CANNOT_CARRY_ANY_MORE_ITEMS(545),
+    UNABLE_TO_PLACE_ITEM_YOUR_PET_IS_TOO_ENCUMBERED(546),
+    PET_PUT_ON_S1(1024),
+    PET_TOOK_OFF_S1(1025),
+    ITEMS_UNAVAILABLE_FOR_STORE_MANUFACTURE(1578),
+    CANNOT_USE_QUEST_ITEMS(148),
+    S1(1983);
     private int _id;
 
     private SystemMessageId(int id) {

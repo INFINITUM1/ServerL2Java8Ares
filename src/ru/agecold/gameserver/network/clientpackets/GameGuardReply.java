@@ -17,10 +17,6 @@
  */
 package ru.agecold.gameserver.network.clientpackets;
 
-//import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
-import ru.agecold.Config;
-import ru.agecold.gameserver.util.protection.catsguard.CatsGuard;
-
 /**
  * @author zabbix
  * Lets drink to code!
@@ -30,55 +26,14 @@ import ru.agecold.gameserver.util.protection.catsguard.CatsGuard;
  */
 public class GameGuardReply extends L2GameClientPacket {
 
-    private int[] _reply = new int[4];
-
     @Override
     protected void readImpl() {
         //System.out.println("###gg1#");
-        if (Config.CATS_GUARD) {
-            //System.out.println("###gg2#");
-            if ((CatsGuard.getInstance().isEnabled()) && (getClient().getHWid() == null || getClient().getHWid().equalsIgnoreCase("none"))) {
-                //System.out.println("###gg3#");
-                this._reply[0] = readD();
-                this._reply[1] = readD();
-                this._reply[2] = readD();
-                this._reply[3] = readD();
-            } else {
-                //System.out.println("###gg4#");
-                byte[] b = new byte[this._buf.remaining()];
-                readB(b);
-            }
-            //System.out.println("###gg5#");
-        } else {
-            _reply[0] = readD();
-            _reply[1] = readD();
-            _reply[2] = readD();
-            _reply[3] = readD();
-        }
     }
 
     @Override
     protected void runImpl() {
         //System.out.println("###gg6#");
-        if (Config.CATS_GUARD) {
-            //System.out.println("###gg7#");
-            if (CatsGuard.getInstance().isEnabled()) {
-                //System.out.println("###gg8#");
-                CatsGuard.getInstance().initSession(getClient(), this._reply);
-            }
-            //System.out.println("###gg9#");
-            return;
-        }
-        //System.out.println("###gg10#");
         //L2PcInstance player = getClient().getActiveChar();
-        if (getClient() == null) {
-            return;
-        }
-
-        if (!getClient().checkGameGuardReply(_reply)) {
-            return;
-        }
-
-        getClient().setGameGuardOk(true);
     }
 }

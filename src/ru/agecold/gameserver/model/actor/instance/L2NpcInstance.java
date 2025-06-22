@@ -58,6 +58,7 @@ import ru.agecold.gameserver.util.Util;
 import ru.agecold.util.Location;
 import ru.agecold.util.Log;
 import ru.agecold.util.Rnd;
+import ru.agecold.util.reference.HardReference;
 import scripts.zone.type.L2TownZone;
 
 /**
@@ -2212,6 +2213,7 @@ public class L2NpcInstance extends L2Character {
         }
 
         html.replace("%objectId%", String.valueOf(getObjectId()));
+        html.replace("%olydate%", Olympiad.getOlympiadEndPrint());
         html.replace("%festivalMins%", SevenSignsFestival.getInstance().getTimeToNextFestivalStr());
 
         if (isL2Teleporter()) {
@@ -2240,6 +2242,7 @@ public class L2NpcInstance extends L2Character {
         NpcHtmlMessage html = NpcHtmlMessage.id(getObjectId());
         html.setFile(filename);
         html.replace("%objectId%", String.valueOf(getObjectId()));
+        html.replace("%olydate%", Olympiad.getOlympiadEndPrint());
         player.sendPacket(html);
 
         // Send a Server->Client ActionFailed to the L2PcInstance in order to avoid that the client wait another packet
@@ -2760,5 +2763,12 @@ public class L2NpcInstance extends L2Character {
             return;
         }
         player.sendHtmlMessage("Произошла ошибка при поытки изменить класс!");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public HardReference<L2NpcInstance> getRef()
+    {
+        return (HardReference<L2NpcInstance>) super.getRef();
     }
 }

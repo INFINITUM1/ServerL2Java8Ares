@@ -23,6 +23,7 @@ import ru.agecold.Config.PvpTitleBonus;
 import ru.agecold.L2DatabaseFactory;
 import ru.agecold.gameserver.*;
 import ru.agecold.gameserver.ai.*;
+import ru.agecold.gameserver.autofarm.AutofarmManager;
 import ru.agecold.gameserver.cache.HtmCache;
 import ru.agecold.gameserver.cache.Static;
 import ru.agecold.gameserver.cache.WarehouseCacheManager;
@@ -59,12 +60,14 @@ import ru.agecold.gameserver.templates.*;
 import ru.agecold.gameserver.util.AntiFarm;
 import ru.agecold.gameserver.util.AntiFarm.FarmDelay;
 import ru.agecold.gameserver.util.Broadcast;
+import ru.agecold.gameserver.util.BypassStorage;
 import ru.agecold.gameserver.util.Moderator;
 import ru.agecold.gameserver.util.PeaceZone;
 import ru.agecold.gameserver.util.WebStat;
 import ru.agecold.mysql.Close;
 import ru.agecold.mysql.Connect;
 import ru.agecold.util.*;
+import ru.agecold.util.reference.HardReference;
 import scripts.autoevents.basecapture.BaseCapture;
 import scripts.autoevents.encounter.Encounter;
 import scripts.communitybbs.BB.Forum;
@@ -514,6 +517,7 @@ public class L2PcInstance extends L2PlayableInstance {
     public LinkedList<String> kills = new LinkedList<String>();
     public boolean eventSitForced = false;
     public boolean atEvent = false;
+    private BypassStorage _bypassStorage = new BypassStorage();
     /**
      * new loto ticket *
      */
@@ -538,11 +542,11 @@ public class L2PcInstance extends L2PlayableInstance {
     private int _fishz = 0;
     private ScheduledFuture<?> _taskRentPet;
     private ScheduledFuture<?> _taskWater;
-    /**
-     * Bypass validations
-     */
-    private List<String> _validBypass = new FastList<String>();
-    private List<String> _validBypass2 = new FastList<String>();
+    // /**
+    //  * Bypass validations
+    //  */
+    // private List<String> _validBypass = new FastList<String>();
+    // private List<String> _validBypass2 = new FastList<String>();
     private Forum _forumMail;
     private Forum _forumMemo;
     /**
@@ -709,6 +713,13 @@ public class L2PcInstance extends L2PlayableInstance {
         }
 
         return player;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public HardReference<L2PcInstance> getRef()
+    {
+        return (HardReference<L2PcInstance>) super.getRef();
     }
 
     public static L2PcInstance createDummyPlayer(int objectId, String name) {
@@ -4177,6 +4188,7 @@ public class L2PcInstance extends L2PlayableInstance {
      */
     public void doPickupItem(L2Object object) {
         if (isAlikeDead() || isFakeDeath()) {
+            sendActionFailed();
             return;
         }
 
@@ -4759,6 +4771,7 @@ public class L2PcInstance extends L2PlayableInstance {
         stopRentPet(false);
         stopWaterTask(-5);
         updateEffectIcons();
+        AutofarmManager.getInstance().onDeath(this);
         return true;
     }
 
@@ -6481,7 +6494,7 @@ public class L2PcInstance extends L2PlayableInstance {
             con = L2DatabaseFactory.get();
             con.setTransactionIsolation(1);
 
-            st = con.prepareStatement("SELECT account_name, obj_Id, char_name, name_color, level, maxHp, curHp, maxCp, curCp, maxMp, curMp, acc, crit, evasion, mAtk, mDef, mSpd, pAtk, pDef, pSpd, runSpd, walkSpd, str, con, dex, _int, men, wit, face, hairStyle, hairColor, sex, heading, x, y, z, movement_multiplier, attack_speed_multiplier, colRad, colHeight, exp, expBeforeDeath, sp, karma, pvpkills, pkkills, clanid, maxload, race, classid, deletetime, cancraft, title, title_color, rec_have, rec_left, accesslevel, online, char_slot, lastAccess, clan_privs, wantspeace, base_class, onlinetime, isin7sdungeon, in_jail, jail_timer, newbie, nobless, power_grade, subpledge, last_recom_date, lvl_joined_academy, apprentice, sponsor, varka_ketra_ally,clan_join_expiry_time,clan_create_expiry_time,death_penalty_level,hero,premium,chatban_timer,chatban_reason,chat_filter_count,deaths,lang FROM characters WHERE obj_Id=? LIMIT 1");
+            st = con.prepareStatement("SELECT account_name, obj_Id, char_name, name_color, level, maxHp, curHp, maxCp, curCp, maxMp, curMp, acc, crit, evasion, mAtk, mDef, mSpd, pAtk, pDef, pSpd, runSpd, walkSpd, str, con, dex, _int, men, wit, face, hairStyle, hairColor, sex, heading, x, y, z, movement_multiplier, attack_speed_multiplier, colRad, colHeight, exp, expBeforeDeath, sp, karma, pvpkills, pkkills, clanid, maxload, race, classid, deletetime, cancraft, title, title_color, rec_have, rec_left, accesslevel, online, char_slot, lastAccess, clan_privs, wantspeace, base_class, onlinetime, isin7sdungeon, in_jail, jail_timer, newbie, nobless, power_grade, subpledge, last_recom_date, lvl_joined_academy, apprentice, sponsor, varka_ketra_ally,clan_join_expiry_time,clan_create_expiry_time,death_penalty_level,hero,premium,chatban_timer,chatban_reason,chat_filter_count,LastHWID,deaths,lang FROM characters WHERE obj_Id=? LIMIT 1");
             st.setInt(1, objectId);
             rset = st.executeQuery();
 
@@ -6597,6 +6610,10 @@ public class L2PcInstance extends L2PlayableInstance {
                 player.setCurrentCp(rset.getDouble("curCp"));
                 currentMp = rset.getDouble("curMp");
                 player.setCurrentMp(rset.getDouble("curMp"));
+
+                String hd = rset.getString("LastHWID");
+                if(hd != null)
+                    player.setLastHwId(hd);
 
                 //Check recs
                 player.checkRecom(rset.getInt("rec_have"), rset.getInt("rec_left"));
@@ -7079,20 +7096,21 @@ public class L2PcInstance extends L2PlayableInstance {
         if (getTotalSubClasses() > 0) {
             PreparedStatement st = null;
             try {
-                con.setAutoCommit(false);
-                st = con.prepareStatement("UPDATE character_subclasses SET exp=?,sp=?,level=?,class_id=? WHERE char_obj_id=? AND class_index=?");
                 for (SubClass subClass : getSubClasses().values()) {
+                st = con.prepareStatement("UPDATE character_subclasses SET exp=?,sp=?,level=?,class_id=? WHERE char_obj_id=? AND class_index=?");
+                // for (SubClass subClass : getSubClasses().values()) {
                     st.setLong(1, subClass.getExp());
                     st.setInt(2, subClass.getSp());
                     st.setInt(3, subClass.getLevel());
                     st.setInt(4, subClass.getClassId());
                     st.setInt(5, getObjectId());
                     st.setInt(6, subClass.getClassIndex());
-                    st.addBatch();
+                    st.executeUpdate();
+                    Close.S(st);
                 }
-                st.executeBatch();
-                con.commit();
-                con.setAutoCommit(true);
+                // st.executeBatch();
+                // con.commit();
+                // con.setAutoCommit(true);
             } catch (SQLException e) {
                 //con.rollback();
                 _log.warning("Could not store sub class data for " + getName() + ": " + e);
@@ -8241,18 +8259,18 @@ public class L2PcInstance extends L2PlayableInstance {
             return;
         }
 
-        if (skill.isSiegeFlagSkill()) {
-            if (!isInSiegeFlagArea()) {
-                sendActionFailed();
-                return;
-            }
+        // if (skill.isSiegeFlagSkill()) {
+        //     if (!isInSiegeFlagArea()) {
+        //         sendActionFailed();
+        //         return;
+        //     }
 
-            Castle castle = CastleManager.getInstance().getCastle(this);
-            if (castle == null || !castle.getSiege().getIsInProgress()) {
-                sendActionFailed();
-                return;
-            }
-        }
+        //     Castle castle = CastleManager.getInstance().getCastle(this);
+        //     if (castle == null || !castle.getSiege().getIsInProgress()) {
+        //         sendActionFailed();
+        //         return;
+        //     }
+        // }
 
         // Check if it's ok to summon
         // siege golem (13), Wild Hog Cannon (299), Swoop Cannon (448)
@@ -8276,6 +8294,19 @@ public class L2PcInstance extends L2PlayableInstance {
         if (isForbidWeapon(getActiveWeaponInstance())) {
             sendActionFailed();
             return;
+        }
+
+        if (skill.isSiegeFlagSkill()) {
+            if (!isInSiegeFlagArea()) {
+                sendActionFailed();
+                return;
+            }
+
+            Castle castle = CastleManager.getInstance().getCastle(this);
+            if (castle == null || !castle.getSiege().getIsInProgress()) {
+                sendActionFailed();
+                return;
+            }
         }
 
         //************************************* Check Casting in Progress *******************************************
@@ -8549,7 +8580,7 @@ public class L2PcInstance extends L2PlayableInstance {
 
         if (!target.equals(this) && !(isInDuel() && target.getDuel() == getDuel())) {
             if (TvTEvent.isStarted() && TvTEvent.isPlayerParticipant(getName()) && TvTEvent.isPlayerParticipant(target.getName())) {
-                if (skill.isSkillTypeOffensive() || skill.isPvpSkill() || skill.isHeroDebuff() || skill.isAOEpvp()) // pvp skill
+                if (skill.isPvpSkill() || skill.isHeroDebuff() || skill.isAOEpvp()) // pvp skill
                 {
                     if (TvTEvent.getParticipantTeamId(getName()) == TvTEvent.getParticipantTeamId(target.getName())) {
                         return false;
@@ -9023,6 +9054,31 @@ public class L2PcInstance extends L2PlayableInstance {
     @Override
     public void sendMessage(String txt) {
         sendUserPacket(SystemMessage.sendString(txt));
+    }
+
+    public void sendChatMessage(final int objectId, final int messageType, final String charName, final String text)
+    {
+        sendPacket(new CreatureSay(objectId, messageType, charName, text));
+    }
+
+    public void sendAdminMessage(final String message)
+    {
+        sendChatMessage(0, 0, "SYS", message);
+    }
+
+    public void sendHTMLMessage(final String message)
+    {
+        sendChatMessage(0, 0, "HTML", message);
+    }
+
+    public void sendDebugMessage(final String message)
+    {
+        sendChatMessage(0, 0, "BUG", message);
+    }
+
+    public void sendMultisellMessage(final String message)
+    {
+        sendChatMessage(0, 0, "Multisell", message);
     }
 
     @Override
@@ -9701,7 +9757,9 @@ public class L2PcInstance extends L2PlayableInstance {
          * 'classIndex'.
          */
         store();
+        if (Config.RELOAD_SUB_SKILL) {
         clearDisabledSkills();
+        }
 
         if (classIndex == 0) {
             setClassTemplate(getBaseClass());
@@ -10397,21 +10455,21 @@ public class L2PcInstance extends L2PlayableInstance {
         _snoopedPlayer.remove(pci);
     }
 
-    public synchronized void addBypass(String bypass) {
-        if (bypass == null) {
-            return;
-        }
-        _validBypass.add(bypass);
-        //_log.warning("[BypassAdd]"+getName()+" '"+bypass+"'");
-    }
+    // public synchronized void addBypass(String bypass) {
+    //     if (bypass == null) {
+    //         return;
+    //     }
+    //     _validBypass.add(bypass);
+    //     //_log.warning("[BypassAdd]"+getName()+" '"+bypass+"'");
+    // }
 
-    public synchronized void addBypass2(String bypass) {
-        if (bypass == null) {
-            return;
-        }
-        _validBypass2.add(bypass);
-        //_log.warning("[BypassAdd]"+getName()+" '"+bypass+"'");
-    }
+    // public synchronized void addBypass2(String bypass) {
+    //     if (bypass == null) {
+    //         return;
+    //     }
+    //     _validBypass2.add(bypass);
+    //     //_log.warning("[BypassAdd]"+getName()+" '"+bypass+"'");
+    // }
 
     public boolean validateItemManipulation(int objectId, String action) {
         L2ItemInstance item = getInventory().getItemByObjectId(objectId);
@@ -10449,61 +10507,61 @@ public class L2PcInstance extends L2PlayableInstance {
         return true;
     }
 
-    public synchronized void clearBypass() {
-        _validBypass.clear();
-        _validBypass2.clear();
-    }
-    //
-    private List<String> bypasses = null, bypasses_bbs = null;
+    // public synchronized void clearBypass() {
+    //     _validBypass.clear();
+    //     _validBypass2.clear();
+    // }
+    // //
+    // private List<String> bypasses = null, bypasses_bbs = null;
 
-    private List<String> getStoredBypasses(boolean bbs) {
-        if (bbs) {
-            if (bypasses_bbs == null) {
-                bypasses_bbs = new ArrayList<String>();
-            }
-            return bypasses_bbs;
-        }
-        if (bypasses == null) {
-            bypasses = new ArrayList<String>();
-        }
-        return bypasses;
-    }
+    // private List<String> getStoredBypasses(boolean bbs) {
+    //     if (bbs) {
+    //         if (bypasses_bbs == null) {
+    //             bypasses_bbs = new ArrayList<String>();
+    //         }
+    //         return bypasses_bbs;
+    //     }
+    //     if (bypasses == null) {
+    //         bypasses = new ArrayList<String>();
+    //     }
+    //     return bypasses;
+    // }
 
-    public void cleanBypasses(boolean bbs) {
-        List<String> bypassStorage = getStoredBypasses(bbs);
-        synchronized (bypassStorage) {
-            bypassStorage.clear();
-        }
-    }
+    // public void cleanBypasses(boolean bbs) {
+    //     List<String> bypassStorage = getStoredBypasses(bbs);
+    //     synchronized (bypassStorage) {
+    //         bypassStorage.clear();
+    //     }
+    // }
 
-    public String encodeBypasses(String htmlCode, boolean bbs) {
-        List<String> bypassStorage = getStoredBypasses(bbs);
-        synchronized (bypassStorage) {
-            return BypassManager.encode(htmlCode, bypassStorage, bbs);
-        }
-    }
+    // public String encodeBypasses(String htmlCode, boolean bbs) {
+    //     List<String> bypassStorage = getStoredBypasses(bbs);
+    //     synchronized (bypassStorage) {
+    //         return BypassManager.encode(htmlCode, bypassStorage, bbs);
+    //     }
+    // }
 
-    public DecodedBypass decodeBypass(String bypass) {
-        BypassType bpType = BypassManager.getBypassType(bypass);
-        boolean bbs = bpType == BypassType.ENCODED_BBS || bpType == BypassType.SIMPLE_BBS;
-        List<String> bypassStorage = getStoredBypasses(bbs);
-        if (bpType == BypassType.ENCODED || bpType == BypassType.ENCODED_BBS) {
-            return BypassManager.decode(bypass, bypassStorage, bbs, this);
-        }
-        if (bpType == BypassType.SIMPLE) {
-            return new DecodedBypass(bypass, false).trim();
-        }
-        if (bpType == BypassType.SIMPLE_BBS && !bypass.startsWith("_bbsscripts")) {
-            return new DecodedBypass(bypass, true).trim();
-        }
-        //BaseBBSManager handler = CommunityBoard.getInstance().getHandler(bypass);
-        if (CommunityBoard.getInstance().findBypass(bypass)) {
-            return new DecodedBypass(bypass, null).trim();
-        }
-        //_log.warn("Direct access to bypass: " + bypass + " / Player: " + getName());
-        Log.add("Запрос: " + bypass + " / " + getFingerPrints(), "cheats/BypassValidate");
-        return null;
-    }
+    // public DecodedBypass decodeBypass(String bypass) {
+    //     BypassType bpType = BypassManager.getBypassType(bypass);
+    //     boolean bbs = bpType == BypassType.ENCODED_BBS || bpType == BypassType.SIMPLE_BBS;
+    //     List<String> bypassStorage = getStoredBypasses(bbs);
+    //     if (bpType == BypassType.ENCODED || bpType == BypassType.ENCODED_BBS) {
+    //         return BypassManager.decode(bypass, bypassStorage, bbs, this);
+    //     }
+    //     if (bpType == BypassType.SIMPLE) {
+    //         return new DecodedBypass(bypass, false).trim();
+    //     }
+    //     if (bpType == BypassType.SIMPLE_BBS && !bypass.startsWith("_bbsscripts")) {
+    //         return new DecodedBypass(bypass, true).trim();
+    //     }
+    //     //BaseBBSManager handler = CommunityBoard.getInstance().getHandler(bypass);
+    //     if (CommunityBoard.getInstance().findBypass(bypass)) {
+    //         return new DecodedBypass(bypass, null).trim();
+    //     }
+    //     //_log.warn("Direct access to bypass: " + bypass + " / Player: " + getName());
+    //     Log.add("Запрос: " + bypass + " / " + getFingerPrints(), "cheats/BypassValidate");
+    //     return null;
+    // }
 
     public String getFingerPrints() {
         return "Player: " + getName() + "(" + getObjectId() + "), account: " + getAccountName() + ", ip: " + getIP() + ", hwid: " + getHWID() + "";
@@ -10576,6 +10634,7 @@ public class L2PcInstance extends L2PlayableInstance {
      *
      */
     public void deleteMe() {
+        AutofarmManager.getInstance().onPlayerLogout(this);
         if (_fantome && isVisible()) {
             try {
                 decayMe();
@@ -10893,7 +10952,7 @@ public class L2PcInstance extends L2PlayableInstance {
         _lastOptiServerPosition = null;
         _profiles = null;
         _cubics = null;
-        clearBypass();
+        // clearBypass();
     }
     private FishData _fish;
 
@@ -15739,18 +15798,37 @@ public class L2PcInstance extends L2PlayableInstance {
          */
 
         if (trg.isPlayer()) {
-            if (!isGM() && getChannel() == 8 && trg.isPlayer() && trg.getChannel() != 8) {
-                if (TvTEvent.isRegisteredPlayer(trg.getObjectId())) {
+            if (!isGM()) {
+                if (trg.isPlayer()) {
+                    if (isEventWait() || trg.isEventWait()) {
+                        return false;
+                    }
+                    if (TvTEvent.isInBattle2(trg.getObjectId())) {
+                        if (trg.getChannel() != 8) {
                     TvTEvent.onLogin(trg.getPlayer());
-                }/* else {
+                            return false;
+                        }
+                        if (trg.getPvpFlag() != 0) {
+                            kick();
+                            return false;
+                        }
+                        if (getPvpFlag() != 0) {
+                            if (TvTEvent.isInBattle2(getObjectId())) {
+                                kick();
+                            } else {
                  teleToClosestTown();
-                 }*/
-
+                            }
                 return false;
             }
-
-            if (!isGM() && getChannel() != trg.getChannel()) {
+                        if (getChannel() != 8) {
+                            TvTEvent.onLogin(this);
                 return false;
+                        }
+                    }
+                }
+                if (getChannel() != trg.getChannel()) {
+                    return false;
+                }
             }
 
             if ((isInOlympiadMode() || trg.isInOlympiadMode()) && trg.getOlympiadGameId() != getOlympiadGameId()) {
@@ -15769,18 +15847,37 @@ public class L2PcInstance extends L2PlayableInstance {
          */
 
         if (trg.isPlayer()) {
-            if (!isGM() && getChannel() == 8 && trg.isPlayer() && trg.getChannel() != 8) {
-                if (TvTEvent.isRegisteredPlayer(trg.getObjectId())) {
+            if (!isGM()) {
+                if (trg.isPlayer()) {
+                    if (isEventWait() || trg.isEventWait()) {
+                        return false;
+                    }
+                    if (TvTEvent.isInBattle2(trg.getObjectId())) {
+                        if (trg.getChannel() != 8) {
                     TvTEvent.onLogin(trg.getPlayer());
-                }/* else {
-                 trg.teleToClosestTown();
-                 }*/
-
                 return false;
             }
-
-            if (!isGM() && getChannel() != trg.getChannel()) {
+                        if (trg.getPvpFlag() != 0) {
+                            kick();
                 return false;
+                        }
+                        if (getPvpFlag() != 0) {
+                            if (TvTEvent.isInBattle2(getObjectId())) {
+                                kick();
+                            } else {
+                                teleToClosestTown();
+                            }
+                            return false;
+                        }
+                        if (getChannel() != 8) {
+                            TvTEvent.onLogin(this);
+                            return false;
+                        }
+                    }
+                }
+                if (getChannel() != trg.getChannel()) {
+                    return false;
+                }
             }
 
             if ((isInOlympiadMode() || trg.isInOlympiadMode()) && trg.getOlympiadGameId() != getOlympiadGameId()) {
@@ -15794,29 +15891,54 @@ public class L2PcInstance extends L2PlayableInstance {
     public boolean isInEvent() {
         return EventManager.getInstance().onEvent(this);
     }
-
-    //ламмгвардддд
-    public void saveHWID(boolean f) {
-        LoginServerThread.getInstance().setHwid(getAccountName(), (f ? getHWID() : ""));
-        _client.setMyHWID(f ? getHWID() : "none");
-    }
-    // мой хвид
-
-    public String getMyHWID() {
-        if (_client == null) {
-            return "none";
-        }
-
-        return _client.getMyHWID();
-    }
-    // полученный
+// hwid
+    private String _hwid = "none";
 
     public String getHWID() {
         if (_client == null) {
             return "none";
         }
 
-        return _client.getHWID();
+        return _hwid;
+    }
+
+    //
+
+    public String getHWid() {
+        if (getClient() == null) {
+            return _hwid;
+        }
+        _hwid = getClient().getHWid();
+        return _hwid;
+    }
+
+    public void setLastHwId(String hwid) {
+        this._hwid = hwid;
+    }
+
+    public void storeHWID(String HWID)
+    {
+        if(HWID == null || HWID.isEmpty() || _hwid.equals(HWID))
+            return;
+        _hwid = HWID;
+        Connect con = null;
+        PreparedStatement statement = null;
+        try
+        {
+            con = L2DatabaseFactory.get();
+            statement = con.prepareStatement("UPDATE characters SET LastHWID=? WHERE obj_Id=? LIMIT 1");
+            statement.setString(1, HWID);
+            statement.setInt(2, getObjectId());
+            statement.execute();
+        }
+        catch(final Exception e)
+        {
+            _log.warning("Could not store HWID for " + toString() + " " + e);
+        }
+        finally
+        {
+            Close.CS(con, statement);
+        }
     }
 
     // пароль
@@ -16828,19 +16950,19 @@ public class L2PcInstance extends L2PlayableInstance {
         return TvTEvent.getTvtKills(getObjectId());
     }
     //
-    private String _hwid;
+    // private String _hwid;
 
-    public String getHWid() {
-        if (getClient() == null) {
-            return _hwid;
-        }
-        _hwid = getClient().getHWid();
-        return _hwid;
-    }
+    // public String getHWid() {
+    //     if (getClient() == null) {
+    //         return _hwid;
+    //     }
+    //     _hwid = getClient().getHWid();
+    //     return _hwid;
+    // }
 
-    public String getLastHwId() {
-        return this._hwid;
-    }
+    // public String getLastHwId() {
+    //     return this._hwid;
+    // }
     //
     private boolean _partyExitPenalty = false;
     private boolean _logoutPenalty = false;
@@ -17443,5 +17565,18 @@ public class L2PcInstance extends L2PlayableInstance {
         }
 
         handler.useItem(this, item);
+    }
+
+    public String getClanName()
+    {
+        if (_clan == null) {
+            return "-";
+        }
+        return _clan.getName();
+    }
+
+    public BypassStorage getBypassStorage()
+    {
+        return _bypassStorage;
     }
 }

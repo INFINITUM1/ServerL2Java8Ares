@@ -35,6 +35,7 @@ import java.security.NoSuchAlgorithmException;
 import ru.agecold.Base64;
 import java.net.InetAddress;
 import javolution.text.TextBuilder;
+import ru.agecold.Config;
 
 /**
  * This class ...
@@ -224,5 +225,107 @@ public class Util
 		word = word.replaceAll(">","&gt;");
 		word = word.replaceAll("\\$","");
 		return word;
+	}
+
+	public static String maskAA(byte[] hwid)
+	{
+		String h = "";
+		if(Config.MASK_HWID == 14)
+		{
+			for(int i = 0; i < 24; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		if(Config.MASK_HWID == 12)
+		{
+			for(int i = 0; i < 16; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		if(Config.MASK_HWID == 1)
+		{
+			for(int i = 24; i < hwid.length; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		if(Config.MASK_HWID == 2)
+		{
+			for(int i = 16; i < 24; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		if(Config.MASK_HWID == 3)
+		{
+			for(int i = 16; i < hwid.length; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		if(Config.MASK_HWID == 4)
+		{
+			for(int i = 8; i < 16; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		if(Config.MASK_HWID == 5)
+		{
+			for(int i = 8; i < 16; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			for(int i = 24; i < hwid.length; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		if(Config.MASK_HWID == 6)
+		{
+			for(int i = 8; i < 24; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		if(Config.MASK_HWID == 7)
+		{
+			for(int i = 8; i < hwid.length; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		if(Config.MASK_HWID == 8)
+		{
+			for(int i = 0; i < 8; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		if(Config.MASK_HWID == 9)
+		{
+			for(int i = 0; i < 8; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			for(int i = 24; i < hwid.length; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		if(Config.MASK_HWID == 10)
+		{
+			for(int i = 0; i < 8; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			for(int i = 16; i < 24; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		if(Config.MASK_HWID == 11)
+		{
+			for(int i = 0; i < 8; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			for(int i = 16; i < hwid.length; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		if(Config.MASK_HWID == 13)
+		{
+			for(int i = 0; i < 16; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			for(int i = 24; i < hwid.length; i++)
+				h += Integer.toHexString(hwid[i] & 0xFF);
+			return h;
+		}
+		for(int i = 0; i < hwid.length; i++)
+			h += Integer.toHexString(hwid[i] & 0xFF);
+		return h;
 	}
 }

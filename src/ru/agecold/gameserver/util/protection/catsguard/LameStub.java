@@ -1,9 +1,9 @@
-package ru.agecold.gameserver.util.protection.catsguard;
+// package ru.agecold.gameserver.util.protection.catsguard;
 
-public class LameStub {
+// public class LameStub {
 
-    public static boolean ISLAME = false;
+//     public static boolean ISLAME = false;
 
-    public static void main(String[] args) {
-    }
-}
+//     public static void main(String[] args) {
+//     }
+// }

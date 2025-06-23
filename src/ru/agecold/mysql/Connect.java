@@ -44,6 +44,10 @@ public class Connect {
         return _con.prepareStatement(sql);
     }
 
+    public PreparedStatement prepareStatement(String sql, int a) throws SQLException {
+        return _con.prepareStatement(sql, a);
+    }
+
     public PreparedStatement prepareStatement(String sql, int a, int b) throws SQLException {
         return _con.prepareStatement(sql, a, b);
     }

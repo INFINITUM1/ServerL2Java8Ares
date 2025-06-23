@@ -99,6 +99,11 @@ public class L2SkillDrain extends L2Skill {
             if (Config.VAMP_MAX_MOB_DRAIN >= 1) {
                 hpAdd = Math.min(hpAdd, Config.VAMP_MAX_MOB_DRAIN);
             }
+
+            if((target.isL2Monster() || target.isRaid() || target.isGrandRaid()) && Config.NPCS_DOWN_ABSORB.containsKey(target.getNpcId())) {
+                hpAdd = Math.min(hpAdd, Config.NPCS_DOWN_ABSORB.get(target.getNpcId()));
+            }
+
             activeChar.setCurrentHp(activeChar.getCurrentHp() + hpAdd);
 
             /*StatusUpdate suhp = new StatusUpdate(activeChar.getObjectId());

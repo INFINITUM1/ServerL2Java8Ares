@@ -515,6 +515,11 @@ public final class StatsSet
 		}
 	}
 
+	public boolean isSet(String name)
+	{
+		return _set.get(name) != null;
+	}
+
 	public void unset(final String name)
 	{
 		_set.remove(name);

@@ -28,14 +28,14 @@
 	</target>
 
 	<target name="compile" depends="init" description="Compile the source.">
-		<javac srcdir="${src}" classpathref="classpath" destdir="${build.classes}" compiler="javac1.8" debug="true" debuglevel="lines,vars,source" includeantruntime="false" source="1.8" target="1.8" />
+		<javac srcdir="${src}" classpathref="classpath" destdir="${build.classes}" compiler="javac1.8" debug="true" debuglevel="lines,vars,source" includeantruntime="false" source="1.8" target="1.8" encoding="UTF-8"/>
 	</target>
 
 	<target name="jar" depends="compile" description="Create the jar file.">
 		<jar destfile="${build}/core-gs.jar">
 			<fileset dir="${build.classes}" />
 			<manifest>
-				<attribute name="Main-Class" value="net.sf.l2j.gameserver.GameServer" />
+				<attribute name="Main-Class" value="ru.agecold.gameserver.GameServer" />
 				<attribute name="Class-Path" value="${manifest.libs}" />
 			</manifest>
 		</jar>

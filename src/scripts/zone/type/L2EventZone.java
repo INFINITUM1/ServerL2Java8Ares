@@ -4,6 +4,7 @@ import javolution.util.FastList;
 import ru.agecold.gameserver.datatables.CustomServerData;
 import ru.agecold.gameserver.datatables.SkillTable;
 import ru.agecold.gameserver.model.L2Character;
+import ru.agecold.gameserver.model.L2Effect;
 import ru.agecold.gameserver.model.L2Skill;
 import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
 import scripts.zone.L2ZoneType;
@@ -12,10 +13,11 @@ public class L2EventZone extends L2ZoneType {
     private int _zoneId = 0;
     private int _pvpArena = 0;
     private boolean _noPeace = false;
-    private int _maxHennaBonus = 0;
+    private int _maxHennaBonus = -1;
     private int _minHennaBonus = 0;
     private final FastList<Integer> _forbiddenItem = new FastList<Integer>();
     private final FastList<Integer> _forbiddenSkills = new FastList<Integer>();
+    private final FastList<Integer> _forbiddenEffects = new FastList<Integer>();
 
     public L2EventZone(int id) {
         super(id);
@@ -41,6 +43,14 @@ public class L2EventZone extends L2ZoneType {
                     continue;
                 }
                 _forbiddenSkills.add(Integer.parseInt(point));
+            }
+        } else if (name.equals("effects")) {
+            String[] token = value.split(",");
+            for (String point : token) {
+                if (point.equals("")) {
+                    continue;
+                }
+                _forbiddenEffects.add(Integer.parseInt(point));
             }
         } else if (name.equals("maxHennaBonus")) {
             _maxHennaBonus = Integer.parseInt(value);
@@ -109,13 +119,22 @@ public class L2EventZone extends L2ZoneType {
                 }
             }
         }
+        if (!_forbiddenEffects.isEmpty()) {
+            for(L2Effect effect : player.getAllEffects())
+            {
+                L2Skill skill = effect.getSkill();
+                if(_forbiddenEffects.contains(skill.getId()))
+                    player.stopSkillEffects(skill.getId());
+            }
+        }
+
         SkillTable st = SkillTable.getInstance();
         for (L2Skill s : player.getAllSkills()) {
             if (s == null) {
                 continue;
             }
 
-            int mlvl = st.getMaxLevel(s.getId(), 0);
+            int mlvl = st.getMaxLevel(s.getId(), s.getLevel());
             if (s.getLevel() > mlvl) {
                 player.removeSkill(s, false);
                 player.addSkill(st.getInfo(s.getId(), mlvl), false);

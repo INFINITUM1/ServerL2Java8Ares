@@ -5584,6 +5584,7 @@ public abstract class L2Character extends L2Object {
                             if(absorbDamage > 0) {
                                 setCurrentHp(getCurrentHp() + absorbDamage);
                             }
+                            }
                     }
                 }
             }

@@ -35,8 +35,6 @@ import ru.agecold.gameserver.instancemanager.*;
 import ru.agecold.gameserver.model.L2Skill.SkillTargetType;
 import ru.agecold.gameserver.model.L2Skill.SkillType;
 import ru.agecold.gameserver.model.*;
-import ru.agecold.gameserver.model.BypassManager.BypassType;
-import ru.agecold.gameserver.model.BypassManager.DecodedBypass;
 import ru.agecold.gameserver.model.TradeList.TradeItem;
 import ru.agecold.gameserver.model.actor.appearance.PcAppearance;
 import ru.agecold.gameserver.model.actor.knownlist.PcKnownList;
@@ -13406,8 +13404,6 @@ public class L2PcInstance extends L2PlayableInstance {
 
         _inGame = f;
         if (f) {
-            _client.startSession();
-
             if (Config.VS_HWID) {
                 LoginServerThread.getInstance().setLastHwid(getAccountName(), getHWID());
             }

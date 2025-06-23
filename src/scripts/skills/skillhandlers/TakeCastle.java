@@ -18,13 +18,13 @@
  */
 package scripts.skills.skillhandlers;
 
+import ru.agecold.gameserver.util.Util;
 import scripts.skills.ISkillHandler;
 import ru.agecold.gameserver.instancemanager.CastleManager;
 import ru.agecold.gameserver.model.L2Character;
 import ru.agecold.gameserver.model.L2Object;
 import ru.agecold.gameserver.model.L2Skill;
 import ru.agecold.gameserver.model.L2Skill.SkillType;
-import ru.agecold.gameserver.model.actor.instance.L2ArtefactInstance;
 import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
 import ru.agecold.gameserver.model.entity.Castle;
 import ru.agecold.gameserver.network.SystemMessageId;
@@ -46,6 +46,9 @@ public class TakeCastle implements ISkillHandler {
         if (activeChar == null || !(activeChar.isPlayer())) {
             return;
         }
+        if (targets.size() == 0) {
+            return;
+        }
 
         L2PcInstance player = activeChar.getPlayer();
         if (player.getClan() == null || player.getClan().getLeaderId() != player.getObjectId()) {
@@ -53,15 +56,14 @@ public class TakeCastle implements ISkillHandler {
         }
 
         Castle castle = CastleManager.getInstance().getCastle(player);
-        if (castle == null || !checkIfOkToCastSealOfRule(player, castle, false)) {
+        if (castle == null || !checkIfOkToCastSealOfRule(player, castle, true, skill, targets.get(0))) {
             return;
         }
 
         try {
-            if (player.getTarget().isL2Artefact()) {
-                castle.Engrave(player.getClan(), player.getTarget().getObjectId());
-            }
+            castle.Engrave(player.getClan(), targets.get(0).getObjectId());
         } catch (Exception e) {
+            e.printStackTrace();
         }
         //targets.clear();
     }
@@ -76,28 +78,23 @@ public class TakeCastle implements ISkillHandler {
      * @param activeChar The L2Character of the character placing the flag
      *
      */
-    public static boolean checkIfOkToCastSealOfRule(L2Character activeChar, boolean isCheckOnly) {
-        return checkIfOkToCastSealOfRule(activeChar, CastleManager.getInstance().getCastle(activeChar), isCheckOnly);
-    }
-
-    public static boolean checkIfOkToCastSealOfRule(L2Character activeChar, Castle castle, boolean isCheckOnly) {
+    public static boolean checkIfOkToCastSealOfRule(L2Character activeChar, Castle castle, boolean isCheckOnly, L2Skill skill, L2Object object) {
         if (activeChar == null || !(activeChar.isPlayer())) {
             return false;
         }
 
         SystemMessage sm = SystemMessage.id(SystemMessageId.S1_S2);
         L2PcInstance player = activeChar.getPlayer();
-
         if (castle == null || castle.getCastleId() <= 0) {
-            sm.addString("Не подходящее место для чтения печати/");
-        } else if (player.getTarget() == null || !(player.getTarget().isL2Artefact())) {
-            sm.addString("You can only use this skill on an artifact");
+            sm.addString("Не подходящее место для чтения печати.");
         } else if (!castle.getSiege().getIsInProgress()) {
             sm.addString("You can only use this skill during a siege.");
-        } else if (castle.getSiege().getAttackerClan(player.getClan()) == null) {
+        } else if (!Util.checkIfInRange(200, activeChar, object, true)) {
+            sm.addString("Dist too far casting stopped");
+        } else if (castle.getSiege().getAttackerClan(activeChar.getClan()) == null) {
             sm.addString("You must be an attacker to use this skill");
-        } else if (castle.getRaidGuard() >= 1) {
-            sm.addString("Вам необходимо убить Босса-защитника замка.");
+        } else if (!activeChar.getPlayer().isInSiegeRuleArea()) {
+            sm.addString("You must be an attacker to use this skill");
         } else {
             if (!isCheckOnly) {
                 castle.getSiege().announceToPlayer("Клан " + player.getClan().getName() + " начал чтение печати.", true);
@@ -105,9 +102,8 @@ public class TakeCastle implements ISkillHandler {
             return true;
         }
 
-        if (!isCheckOnly) {
-            player.sendPacket(sm);
-        }
+        activeChar.sendPacket(sm);
+
         return false;
     }
 }

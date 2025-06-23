@@ -18,8 +18,6 @@
  */
 package ru.agecold.gameserver.network.serverpackets;
 
-import ru.agecold.Config;
-
 /**
  * @author zabbix
  * Lets drink to code!
@@ -30,12 +28,10 @@ public class GameGuardQueryEx extends L2GameServerPacket {
         // Lets make user as gg-unauthorized
         // We will set him as ggOK after reply fromclient
         // or kick
-        getClient().setGameGuardOk(false);
     }
 
     @Override
     public void writeImpl() {
         writeC(0xf9);
-        writeD(Config.SERVER_ID);
     }
 }

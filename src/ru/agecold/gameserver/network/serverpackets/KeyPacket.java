@@ -18,8 +18,6 @@
  */
 package ru.agecold.gameserver.network.serverpackets;
 
-import ru.agecold.Config;
-
 /**
  * This class ...
  *
@@ -42,15 +40,6 @@ public final class KeyPacket extends L2GameServerPacket {
 
     @Override
     public void writeImpl() {
-        if (Config.CATS_GUARD) {
-            writeC(0x00);
-            writeC(0x01); //0 - wrong protocol, 1 - protocol ok
-            writeB(_key);
-            writeD(0x01); // server id
-            writeC(0x01);
-            return;
-        }
-
         writeC(0x00);
         writeC(0x01);
         writeB(_key);

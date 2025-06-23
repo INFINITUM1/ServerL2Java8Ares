@@ -65,6 +65,7 @@ public class VoicedCommandHandler {
 
         registerVoicedCommandHandler(new BlockBuff());
         registerVoicedCommandHandler(new Security());
+        registerVoicedCommandHandler(new ServerTime());
         //модераторы
         registerVoicedCommandHandler(new ModBanChat());
         registerVoicedCommandHandler(new ModKick());
@@ -72,6 +73,7 @@ public class VoicedCommandHandler {
         registerVoicedCommandHandler(new ModHelp());
         registerVoicedCommandHandler(new ModSpecial());
         registerVoicedCommandHandler(new Acp());
+        registerVoicedCommandHandler(new Autofarm());
         _log.config("VoicedCommandHandler: Loaded " + _datatable.size() + " handlers.");
     }
 

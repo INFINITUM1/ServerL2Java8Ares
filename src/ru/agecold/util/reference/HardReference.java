@@ -1,5 +1,8 @@
 package ru.agecold.util.reference;
 
-public class HardReference {
+public interface HardReference<T>
+{
+	public T get();
 
+	public void clear();
 }

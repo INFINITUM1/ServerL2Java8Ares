@@ -4,9 +4,11 @@ import javolution.text.TextBuilder;
 
 import ru.agecold.Config;
 import ru.agecold.gameserver.cache.Static;
+import ru.agecold.gameserver.lib.Log;
 import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
 import ru.agecold.gameserver.network.serverpackets.NpcHtmlMessage;
 import ru.agecold.gameserver.util.Util;
+import ru.agecold.util.TimeLogger;
 import scripts.commands.IVoicedCommandHandler;
 
 public class Security implements IVoicedCommandHandler {
@@ -24,7 +26,7 @@ public class Security implements IVoicedCommandHandler {
             String choise = command.substring(9).trim();
             if (choise.startsWith("hwid")) {
                 int flag = Integer.parseInt(choise.substring(4).trim());
-                player.saveHWID((flag == 1));
+                player.getClient().saveHWID((flag == 1));
                 showWelcome(player);
                 return true;
             } else if (choise.startsWith("pwd")) {
@@ -103,7 +105,7 @@ public class Security implements IVoicedCommandHandler {
         build.append("<table width=290>");
         if (Config.VS_HWID) {
             build.append("<tr><td width=180><font color=66CC00>Привязка чара к компьютеру:</font></td>");
-            if (player.getMyHWID().length() > 5) {
+            if (player.getClient().getMyHWID().length() > 5) {
                 build.append("<td>[Вкл.]</td>");
                 build.append("<td><button value=\"Выкл.\" action=\"bypass -h security_hwid 0\" width=40 height=15 back=\"sek.cbui94\" fore=\"sek.cbui92\"></td></tr>");
             } else {

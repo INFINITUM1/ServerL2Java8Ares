@@ -28,6 +28,8 @@ import ru.agecold.gameserver.model.actor.instance.L2NpcInstance;
 import ru.agecold.gameserver.model.actor.instance.L2PcInstance;
 import ru.agecold.gameserver.network.serverpackets.ExEnchantSkillInfo;
 
+import java.util.logging.Logger;
+
 /**
  * Format chdd
  * c: (id) 0xD0
@@ -39,6 +41,8 @@ import ru.agecold.gameserver.network.serverpackets.ExEnchantSkillInfo;
  */
 public final class RequestExEnchantSkillInfo extends L2GameClientPacket
 {
+	private static Logger _log = Logger.getLogger(RequestExEnchantSkillInfo.class.getName());
+
 	private int _skillId;
 	private int _skillLvl;
 
@@ -76,7 +80,7 @@ public final class RequestExEnchantSkillInfo extends L2GameClientPacket
         {
             //_log.warning("enchant skill id " + _skillID + " level " + _skillLvl
             //    + " is undefined. aquireEnchantSkillInfo failed.");
-        	player.sendMessage("This skill doesn't yet have enchant info in Datapack");
+	        _log.warning("RequestExEnchantSkillInfo: skillId " + _skillId + " level " + _skillLvl + " not found in Datapack.");
             return;
         }
 

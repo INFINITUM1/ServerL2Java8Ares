@@ -256,7 +256,8 @@ public final class SendWareHouseDepositList extends L2GameClientPacket {
         // Перекидываем
         String date = "";
         TextBuilder tb = null;
-        if (Config.LOG_ITEMS) {
+        boolean logCWH = whType == 2/* && Config.LOG_CLAN_WH*/;
+        if (Config.LOG_ITEMS || logCWH) {
             date = Log.getTime();
             tb = new TextBuilder();
         }
@@ -264,13 +265,18 @@ public final class SendWareHouseDepositList extends L2GameClientPacket {
             L2ItemInstance itemToStore = itemsToStoreList.get(i);
             L2ItemInstance itemDropped = inventory.dropItem("depositwh", itemToStore.getObjectId(), _items.get(itemToStore.getObjectId()), player, player.getLastFolkNPC(), true);
             warehouse.addItem(itemDropped, whType);
-            if (Config.LOG_ITEMS && itemDropped != null) {
-                String act = "DEPOSIT " + (player.getFreightTarget() != 0 ? "FREIGHT" : "") + "" + itemDropped.getItemName() + "(" + itemDropped.getCount() + ")(+" + itemDropped.getEnchantLevel() + ")(" + itemDropped.getObjectId() + ")(npc:" + manager.getTemplate().npcId + ") #(player " + player.getName() + ", account: " + player.getAccountName() + ", ip: " + player.getIP() + ", hwid: " + player.getHWID() + ")";
+            if ((Config.LOG_ITEMS || logCWH) && itemDropped != null) {
+                String act = "DEPOSIT " + (player.getFreightTarget() != 0 ? "FREIGHT" : "") + "" + itemDropped.getItemName() + "(" + itemDropped.getCount() + ")(+" + itemDropped.getEnchantLevel() + ")(" + itemDropped.getObjectId() + ")(npc:" + manager.getTemplate().npcId + ") #(Clan: " + player.getClanName() + "," + player.getFingerPrints() + ")";
                 tb.append(date + act + "\n");
             }
         }
-        if (Config.LOG_ITEMS && tb != null) {
+        if ((Config.LOG_ITEMS || logCWH) && tb != null) {
+            if (Config.LOG_ITEMS) {
             Log.item(tb.toString(), Log.WAREHOUSE);
+            }
+            if (logCWH) {
+                Log.add(tb.toString(), "items/clan_warehouse");
+            }
             tb.clear();
             tb = null;
         }

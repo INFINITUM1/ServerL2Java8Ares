@@ -734,7 +734,7 @@ public final class L2GameClient extends MMOClient<MMOConnection<L2GameClient>> {
                 return;
             } else {
                 player.incAccKickCount();
-                player.sendMessage("���-�� �������� ����� �� ������ ���������!");
+                player.sendMessage("Someone is trying to get behind your character!");
                 //LoginController.getInstance().sendPacket(new PlayerLogout(player.getAccountName()));
             }
 
